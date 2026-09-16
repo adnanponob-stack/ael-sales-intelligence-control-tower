@@ -3,9 +3,9 @@
    Sales signal engine + CI research program + actions + monitoring
    ============================================================ */
 
-/* last complete month index (Jan=0..Sep=8; September treated as MTD) */
-const COMPLETE_UPTO = 7;
-const MTD_MONTH = 8;
+/* last complete month index (derived from data; latest month treated as MTD) */
+const MTD_MONTH = Store.maxMonth;
+const COMPLETE_UPTO = Math.max(0, Store.maxMonth - 1);
 
 const Signals = (function () {
   let cache = null;

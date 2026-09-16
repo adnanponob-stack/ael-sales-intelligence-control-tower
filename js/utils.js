@@ -58,6 +58,7 @@ const Store = (function () {
   const srZone = {}; rows.forEach(r => { srZone[r.sr] = r.zone; srZone[r.sr + '|' + r.point] = r.zone; });
   const srPoint = {}; rows.forEach(r => { srPoint[r.sr] = r.point; });
   const zoneDsm = {}; rows.forEach(r => { zoneDsm[r.zone] = r.dsm; });
+  const maxMonth = rows.length ? rows.reduce((m, r) => Math.max(m, r.mi), 0) : 0;
 
   const filterRows = (f = {}) => rows.filter(r =>
     (f.dsm == null || f.dsm === 'all' || r.dsm === f.dsm) &&
@@ -87,7 +88,7 @@ const Store = (function () {
   };
 
   return {
-    months, rows, zoneList, pointList, srList, dsmList,
+    months, rows, zoneList, pointList, srList, dsmList, maxMonth,
     zonePoints, pointSrs, zoneSrs, srZone, srPoint, zoneDsm,
     filterRows, monthly, aggBy
   };

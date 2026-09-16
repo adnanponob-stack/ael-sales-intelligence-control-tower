@@ -818,6 +818,14 @@
     cycleSteps();
     updateFilterSummary();
 
+    // dynamic header period / last-updated from live data
+    if (AEL_DATA.meta) {
+      const m0 = M[Store.rows.length ? Store.rows.reduce((x, r) => Math.min(x, r.mi), 11) : 0];
+      const m1 = M[Store.maxMonth];
+      $('#periodValue').textContent = m0 + ' – ' + m1 + ' 2026';
+      $('#updatedValue').textContent = AEL_DATA.meta.lastSync || 'Live';
+    }
+
     $$('.nav-item').forEach(n => n.addEventListener('click', () => { renderView(n.getAttribute('data-view')); if (window.innerWidth <= 900) $('#sidebar').classList.remove('open'); }));
 
     $('#selMonth').addEventListener('change', e => { state.filters.month = e.target.value; renderView(state.view); updateFilterSummary(); });
