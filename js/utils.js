@@ -40,8 +40,10 @@ const Store = (function () {
   const rows = AEL_DATA.rows.map(r => ({
     sr: r[0], zone: r[1], point: r[2], zm: r[3],
     dsm: (r[4] && r[4].trim()) ? r[4] : 'Unassigned',
-    mi: r[5], target: r[6], actual: r[7]
+    mi: r[5], target: r[6], actual: r[7],
+    volume: (r[8] || 0), targetVolume: (r[9] || 0)
   }));
+  const meta = AEL_DATA.meta || {};
 
   const zoneList = Array.from(new Set(rows.map(r => r.zone))).sort();
   const pointList = Array.from(new Set(rows.map(r => r.point))).sort();
@@ -67,10 +69,10 @@ const Store = (function () {
     (f.month == null || f.month === 'all' || r.mi === f.month)
   );
 
-  // monthly series for a set of rows: [ {t,a} x 12 ]
+  // monthly series for a set of rows: [ {t,a,v,tv} x 12 ]
   const monthly = (rs) => {
-    const out = Array.from({ length: 12 }, () => ({ t: 0, a: 0 }));
-    rs.forEach(r => { out[r.mi].t += r.target; out[r.mi].a += r.actual; });
+    const out = Array.from({ length: 12 }, () => ({ t: 0, a: 0, v: 0, tv: 0 }));
+    rs.forEach(r => { out[r.mi].t += r.target; out[r.mi].a += r.actual; out[r.mi].v += (r.volume || 0); out[r.mi].tv += (r.targetVolume || 0); });
     return out;
   };
 
@@ -88,7 +90,7 @@ const Store = (function () {
   };
 
   return {
-    months, rows, zoneList, pointList, srList, dsmList, maxMonth,
+    months, rows, zoneList, pointList, srList, dsmList, maxMonth, meta,
     zonePoints, pointSrs, zoneSrs, srZone, srPoint, zoneDsm,
     filterRows, monthly, aggBy
   };

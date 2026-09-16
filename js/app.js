@@ -210,13 +210,15 @@
         kpiCard('Achievement', ach.toFixed(1) + '%', 'Actual vs Target') +
         kpiCard('Sales Gap', 'BDT ' + FMT.money(target - actual), (target > 0 ? ((target - actual) / target * 100).toFixed(1) + '% of target' : '—'), null, 'down') +
       '</div>' +
-      '<div class="card mb18"><div class="card-title">Monthly Target vs Actual</div><div class="chart-box lg"><canvas id="chPerf"></canvas></div></div>' +
+      '<div class="card mb18"><div class="card-title">Monthly Performance — Value, Volume &amp; Share %</div><div class="card-sub">Target &amp; actual (BDT) with delivery volume (orders) and achievement share</div><div class="chart-box lg"><canvas id="chPerf"></canvas></div></div>' +
       '<div class="grid grid-2">' +
         '<div class="card"><div class="card-title">Top SRs by Actual Sales</div><div class="table-wrap">' + srTable(top, false) + '</div></div>' +
         '<div class="card"><div class="card-title">Lowest Achievement SRs</div><div class="table-wrap">' + srTable(bottom, true) + '</div></div>' +
       '</div>';
 
-    Charts.targetActual('chPerf', labels, labels.map((_, i) => series[i].t), labels.map((_, i) => series[i].a));
+    const vol = labels.map((_, i) => series[i].v);
+    const share = labels.map((_, i) => series[i].t > 0 ? +(series[i].a / series[i].t * 100).toFixed(1) : null);
+    Charts.perf('chPerf', labels, labels.map((_, i) => series[i].t), labels.map((_, i) => series[i].a), vol, share);
   }
 
   function srTable(list, byAch) {
@@ -229,9 +231,22 @@
   function renderGeography() {
     const ctx = getContext();
     const zstats = zoneStats(ctx.rows, ctx.upto).sort((a, b) => b.actual - a.actual);
+    const target = sum(ctx.rows, 'target'), actual = sum(ctx.rows, 'actual');
+    const ach = target > 0 ? (actual / target) * 100 : 0;
+    const gap = target - actual;
+    const counts = Signals.counts();
+    const atRisk = zstats.filter(z => z.health.band === 'critical' || z.health.band === 'risk').length;
 
     $('#content').querySelector('[data-view-panel="geography"]').innerHTML =
       '<div class="section-head"><div><div class="section-title">Geographic Intelligence</div><div class="section-desc">Zone → Point (territory) → SR performance</div></div></div>' +
+      '<div class="kpi-grid">' +
+        kpiCard('Target', 'BDT ' + FMT.money(target), FMT.moneyFull(target)) +
+        kpiCard('Actual', 'BDT ' + FMT.money(actual), FMT.moneyFull(actual)) +
+        kpiCard('Achievement', ach.toFixed(1) + '%', 'Actual vs Target') +
+        kpiCard('Sales Gap', 'BDT ' + FMT.money(gap), target > 0 ? (gap / target * 100).toFixed(1) + '% of target' : '—', null, 'down') +
+        kpiCard('Critical Signals', String(counts.critical), 'high priority', null, 'down') +
+        kpiCard('Zones at Risk', String(atRisk), 'of ' + zstats.length + ' zones') +
+      '</div>' +
       '<div class="card mb18"><div class="section-head"><div><div class="card-title">Zone Health Map</div></div><div class="flex">' + mapViewToggle() + '</div></div>' +
       '<div class="map-wrap"><div id="mapBoxGeo" class="map-box"></div><div class="map-side">' + mapLegend() + '</div></div></div>' +
       '<div class="card"><div class="card-title">Zone Performance</div><div class="card-sub">Click a zone to drill down</div>' + zoneTable(zstats) + '</div>';
@@ -777,9 +792,23 @@
   }
 
   /* ---------------- Init ---------------- */
+  function periodInfo() {
+    const year = (Store.meta && Store.meta.year) || new Date().getFullYear();
+    let avail = (Store.meta && Store.meta.months && Store.meta.months.length) ? Store.meta.months.slice() : null;
+    if (!avail) {
+      const seen = {}; avail = [];
+      Store.rows.forEach(r => { if (!seen[r.mi]) { seen[r.mi] = true; avail.push(r.mi); } });
+    }
+    avail.sort((a, b) => a - b);
+    return { year, avail };
+  }
+
   function populateFilters() {
+    const { year, avail } = periodInfo();
     const mSel = $('#selMonth');
-    mSel.innerHTML = '<option value="all">All months (YTD)</option>' + M.slice(0, MTD_MONTH + 1).map((m, i) => '<option value="' + i + '">' + m + ' 2026</option>').join('');
+    mSel.innerHTML = '<option value="all">All months (YTD)</option>' + avail.map(i => '<option value="' + i + '">' + M[i] + ' ' + year + '</option>').join('');
+    const ytdOpt = $('#selScope').querySelector('option[value="ytd"]');
+    if (ytdOpt && avail.length) ytdOpt.textContent = 'YTD (' + M[avail[0]] + ' – ' + M[avail[avail.length - 1]] + ' ' + year + ')';
     const d = $('#selDsm'); d.innerHTML = '<option value="all">All DSMs</option>' + Store.dsmList.map(x => '<option value="' + esc(x) + '">' + esc(x) + '</option>').join('');
     refreshZoneFilter(); refreshSrFilter();
   }
@@ -804,7 +833,7 @@
     parts.push(f.dsm === 'all' ? 'All DSMs' : f.dsm);
     parts.push(f.zone === 'all' ? 'All Zones' : f.zone);
     parts.push(f.sr === 'all' ? 'All SRs' : f.sr);
-    parts.push(f.month === 'all' ? 'YTD' : M[Number(f.month)] + ' 2026');
+    parts.push(f.month === 'all' ? 'YTD' : M[Number(f.month)] + ' ' + periodInfo().year);
     $('#filterSummary').textContent = parts.join(' · ');
   }
 
@@ -820,9 +849,10 @@
 
     // dynamic header period / last-updated from live data
     if (AEL_DATA.meta) {
-      const m0 = M[Store.rows.length ? Store.rows.reduce((x, r) => Math.min(x, r.mi), 11) : 0];
-      const m1 = M[Store.maxMonth];
-      $('#periodValue').textContent = m0 + ' – ' + m1 + ' 2026';
+      const { year, avail } = periodInfo();
+      const m0 = M[avail[0] != null ? avail[0] : 0];
+      const m1 = M[avail.length ? avail[avail.length - 1] : Store.maxMonth];
+      $('#periodValue').textContent = m0 + ' – ' + m1 + ' ' + year;
       $('#updatedValue').textContent = AEL_DATA.meta.lastSync || 'Live';
     }
 

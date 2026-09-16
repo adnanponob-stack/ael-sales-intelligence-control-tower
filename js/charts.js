@@ -85,8 +85,8 @@ const Charts = (function () {
           interaction: { mode: 'index', intersect: false },
           scales: {
             x: { grid: { color: theme().grid, drawBorder: false }, ticks: { color: theme().tick, font: { size: 10.5 } } },
-            y: { position: 'left', grid: { color: theme().grid }, ticks: { color: theme().tick, font: { size: 10.5 }, callback: v => 'BDT ' + FMT.money(v) } },
-            y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: PAL.pos, font: { size: 10.5 }, callback: v => v + '%' } }
+            y: { position: 'left', title: { display: true, text: 'BDT', color: theme().tick, font: { size: 10 } }, grid: { color: theme().grid }, ticks: { color: theme().tick, font: { size: 10.5 }, callback: v => 'BDT ' + FMT.money(v) } },
+            y1: { position: 'right', title: { display: true, text: 'Achievement %', color: PAL.pos, font: { size: 10 } }, grid: { drawOnChartArea: false }, ticks: { color: PAL.pos, font: { size: 10.5 }, callback: v => v + '%' } }
           }
         })
       });
@@ -104,7 +104,33 @@ const Charts = (function () {
           ]
         },
         options: base({
-          scales: { x: { grid: { drawOnChartArea: false }, ticks: { color: theme().tick } }, y: { ticks: { callback: v => 'BDT ' + FMT.money(v) } } }
+          scales: { x: { grid: { drawOnChartArea: false }, ticks: { color: theme().tick } }, y: { title: { display: true, text: 'BDT', color: theme().tick, font: { size: 10 } }, ticks: { callback: v => 'BDT ' + FMT.money(v) } } }
+        })
+      });
+    },
+
+    /* Performance: value (BDT) + volume (orders) + share % */
+    perf(id, labels, target, actual, volume, share) {
+      const t = theme();
+      return make(id, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            { type: 'bar', label: 'Target (BDT)', data: target, backgroundColor: 'rgba(71,85,105,.22)', yAxisID: 'y', borderRadius: 3, barPercentage: .65, categoryPercentage: .7, order: 3 },
+            { type: 'bar', label: 'Actual (BDT)', data: actual, backgroundColor: PAL.darkblue, yAxisID: 'y', borderRadius: 3, barPercentage: .65, categoryPercentage: .7, order: 2 },
+            { type: 'line', label: 'Volume (orders)', data: volume, borderColor: PAL.info, backgroundColor: PAL.info, yAxisID: 'y1', pointRadius: 2, borderWidth: 2, tension: .3, order: 0 },
+            { type: 'line', label: 'Share %', data: share, borderColor: PAL.warn, backgroundColor: PAL.warn, yAxisID: 'y2', pointRadius: 3, borderWidth: 2, borderDash: [5, 4], tension: .3, order: 1 }
+          ]
+        },
+        options: base({
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: t.tick } },
+            y: { position: 'left', title: { display: true, text: 'BDT', color: t.tick, font: { size: 10 } }, grid: { color: t.grid }, ticks: { color: t.tick, callback: v => 'BDT ' + FMT.money(v) } },
+            y1: { position: 'right', title: { display: true, text: 'Volume', color: PAL.info, font: { size: 10 } }, grid: { drawOnChartArea: false }, ticks: { color: PAL.info, callback: v => FMT.money(v) } },
+            y2: { position: 'right', offset: true, title: { display: true, text: 'Share %', color: PAL.warn, font: { size: 10 } }, min: 0, grid: { display: false }, ticks: { color: PAL.warn, callback: v => v + '%' } }
+          }
         })
       });
     },
@@ -118,7 +144,7 @@ const Charts = (function () {
           indexAxis: 'y',
           plugins: { legend: { display: false } },
           scales: {
-            x: { grid: { color: theme().grid }, ticks: { callback: v => 'BDT ' + FMT.money(v) } },
+            x: { title: { display: true, text: 'BDT', color: theme().tick, font: { size: 10 } }, grid: { color: theme().grid }, ticks: { callback: v => 'BDT ' + FMT.money(v) } },
             y: { grid: { display: false }, ticks: { color: theme().tick, font: { size: 10.5 } } }
           }
         })

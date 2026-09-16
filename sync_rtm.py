@@ -305,8 +305,8 @@ def main():
 
         if mn < 1 or mn > 12:
             continue
-        # [SR, Zone, Point, ZM, DSM, monthIdx, target, actual]
-        rows.append([sr, zone, point, zone, division, mn - 1, round(target_val), round(actual_val)])
+        # [SR, Zone, Point, ZM, DSM, monthIdx, target, actual, volume, targetVolume]
+        rows.append([sr, zone, point, zone, division, mn - 1, round(target_val), round(actual_val), int(cnt), int(round(memotarget))])
         if zone not in zone_set:
             zone_set[zone] = True
 
@@ -338,6 +338,8 @@ def main():
             "lastSync": today,
             "source": "RTM (live)",
             "model": TARGET_MODEL,
+            "year": int(START_DATE[:4]),
+            "months": sorted({r[5] for r in rows}),
         },
     }
     js = ("(function(){\nwindow.AEL_DATA = "
