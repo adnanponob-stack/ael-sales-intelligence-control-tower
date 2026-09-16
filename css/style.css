@@ -408,6 +408,14 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .map-tip .mt-row b { color: #fff; }
 .mt-note { font-size: 10.5px; color: var(--muted); line-height: 1.5; }
 
+/* Leaflet map theming */
+.map-box .leaflet-container { background: #E7EEF5; font-family: var(--font); border-radius: 8px; }
+.leaflet-tooltip { background: var(--navy); color: #EAF2F9; border: none; border-radius: 8px; box-shadow: var(--shadow-lg); padding: 8px 11px; font-size: 12px; }
+.leaflet-tooltip-top:before { border-top-color: var(--navy); }
+.leaflet-tooltip-bottom:before { border-bottom-color: var(--navy); }
+.leaflet-control-zoom a { color: var(--slate); }
+.leaflet-control-attribution { background: rgba(255,255,255,.7) !important; color: var(--muted) !important; font-size: 9px !important; }
+
 /* priority matrix quadrants */
 .matrix-cell.immediate { background: rgba(200,62,77,.06); border-top: 3px solid var(--crit); }
 .matrix-cell.priority { background: rgba(217,154,0,.07); border-top: 3px solid var(--warn); }
