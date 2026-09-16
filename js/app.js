@@ -201,6 +201,17 @@
     const top = sr.slice().sort((a, b) => b.actual - a.actual).slice(0, 12);
     const bottom = sr.filter(x => x.target > 0).sort((a, b) => (a.ach == null ? 999 : a.ach) - (b.ach == null ? 999 : b.ach)).slice(0, 12);
 
+    // zone-level target variance (over vs under)
+    const zones = Store.aggBy(ctx.rows, r => r.zone).map(e => ({ name: e.name, target: e.target, actual: e.actual, ach: Calc.achievement(e.target, e.actual), variance: e.actual - e.target }));
+    const overZones = zones.filter(z => z.ach != null && z.ach >= 110).sort((a, b) => b.variance - a.variance);
+    const underZones = zones.filter(z => z.ach != null && z.ach < 90).sort((a, b) => a.variance - b.variance);
+    const overValue = overZones.reduce((s, z) => s + z.variance, 0);
+    const underValue = underZones.reduce((s, z) => s + (-z.variance), 0);
+    const divZones = [
+      ...zones.filter(z => z.target > 0 && z.variance > 0).sort((a, b) => b.variance - a.variance).slice(0, 7),
+      ...zones.filter(z => z.target > 0 && z.variance < 0).sort((a, b) => a.variance - b.variance).slice(0, 7)
+    ];
+
     $('#content').querySelector('[data-view-panel="performance"]').innerHTML =
       '<div class="section-head"><div><div class="section-title">Sales Performance</div></div>' +
       '<div class="flex"><button class="btn btn-primary" onclick="App.exportTable()">Export CSV</button></div></div>' +
@@ -210,7 +221,20 @@
         kpiCard('Achievement', ach.toFixed(1) + '%', 'Actual vs Target') +
         kpiCard('Sales Gap', 'BDT ' + FMT.money(target - actual), (target > 0 ? ((target - actual) / target * 100).toFixed(1) + '% of target' : '—'), null, 'down') +
       '</div>' +
+      '<div class="kpi-grid">' +
+        kpiCard('Over-target Zones', String(overZones.length), 'achievement ≥ 110%', null, 'up') +
+        kpiCard('Under-target Zones', String(underZones.length), 'achievement < 90%', null, 'down') +
+        kpiCard('Over-delivery', 'BDT ' + FMT.money(overValue), 'excess above target', null, 'up') +
+        kpiCard('Under-delivery Gap', 'BDT ' + FMT.money(underValue), 'shortfall below target', null, 'down') +
+      '</div>' +
       '<div class="card mb18"><div class="card-title">Monthly Performance — Value, Volume &amp; Share %</div><div class="card-sub">Target &amp; actual (BDT) with delivery volume (orders) and achievement share</div><div class="chart-box lg"><canvas id="chPerf"></canvas></div></div>' +
+      '<div class="grid grid-2 mb18">' +
+        '<div class="card"><div class="card-title">Target Variance by Zone</div><div class="card-sub">Over target (green) vs under target (red) — BDT</div><div class="chart-box md"><canvas id="chVar"></canvas></div></div>' +
+        '<div class="card"><div class="card-title">Zones Affecting the Business</div><div class="card-sub">Over-achievers (opportunity) &amp; under-achievers (drag)</div>' +
+          '<div class="drawer-section"><h4>Over target</h4>' + varList(overZones.slice(0, 6), true) + '</div>' +
+          '<div class="drawer-section"><h4>Under target</h4>' + varList(underZones.slice(0, 6), false) + '</div>' +
+        '</div>' +
+      '</div>' +
       '<div class="grid grid-2">' +
         '<div class="card"><div class="card-title">Top SRs by Actual Sales</div><div class="table-wrap">' + srTable(top, false) + '</div></div>' +
         '<div class="card"><div class="card-title">Lowest Achievement SRs</div><div class="table-wrap">' + srTable(bottom, true) + '</div></div>' +
@@ -219,6 +243,12 @@
     const vol = labels.map((_, i) => series[i].v);
     const share = labels.map((_, i) => series[i].t > 0 ? +(series[i].a / series[i].t * 100).toFixed(1) : null);
     Charts.perf('chPerf', labels, labels.map((_, i) => series[i].t), labels.map((_, i) => series[i].a), vol, share);
+    Charts.hbar('chVar', divZones.map(z => z.name), divZones.map(z => z.variance), v => v >= 0 ? Charts.PAL.pos : Charts.PAL.neg);
+  }
+
+  function varList(list, over) {
+    if (!list.length) return '<div class="muted">None</div>';
+    return list.map(z => '<div class="detail-row"><span class="lbl">' + esc(z.name) + ' <span class="muted">(' + (z.ach == null ? '—' : z.ach.toFixed(0) + '%') + ')</span></span><span class="val mono ' + (over ? 'h-healthy' : 'h-critical') + '">' + (z.variance >= 0 ? '+' : '−') + FMT.money(Math.abs(z.variance)) + '</span></div>').join('');
   }
 
   function srTable(list, byAch) {
