@@ -248,7 +248,18 @@
 
   function varList(list, over) {
     if (!list.length) return '<div class="muted">None</div>';
-    return list.map(z => '<div class="detail-row"><span class="lbl">' + esc(z.name) + ' <span class="muted">(' + (z.ach == null ? '—' : z.ach.toFixed(0) + '%') + ')</span></span><span class="val mono ' + (over ? 'h-healthy' : 'h-critical') + '">' + (z.variance >= 0 ? '+' : '−') + FMT.money(Math.abs(z.variance)) + '</span></div>').join('');
+    return list.map(z => '<div class="detail-row clickable" data-zone="' + esc(z.name) + '"><span class="lbl">' + esc(z.name) + ' <span class="muted">(' + (z.ach == null ? '—' : z.ach.toFixed(0) + '%') + ')</span>' + (over ? ' <span class="pill pill-warn">Re-target</span>' : '') + '</span><span class="val mono ' + (over ? 'h-healthy' : 'h-critical') + '">' + (z.variance >= 0 ? '+' : '−') + FMT.money(Math.abs(z.variance)) + '</span></div>').join('');
+  }
+
+  function varianceSection(title, items, clickKey) {
+    const over = items.filter(e => e.variance > 0).sort((a, b) => b.variance - a.variance).slice(0, 4);
+    const under = items.filter(e => e.variance < 0).sort((a, b) => a.variance - b.variance).slice(0, 4);
+    if (!over.length && !under.length) return '';
+    const row = (e, isOver) => '<div class="detail-row clickable" ' + (clickKey ? clickKey + '="' + esc(e.name) + '"' : '') + '><span class="lbl">' + esc(e.name) + ' <span class="muted">(' + (e.ach == null ? '—' : e.ach.toFixed(0) + '%') + ')</span></span><span class="val mono ' + (isOver ? 'h-healthy' : 'h-critical') + '">' + (e.variance >= 0 ? '+' : '−') + FMT.money(Math.abs(e.variance)) + '</span></div>';
+    return '<div class="drawer-section"><h4>' + title + '</h4>' +
+      (over.length ? '<div class="muted" style="margin:2px 0 4px">Over target</div>' + over.map(e => row(e, true)).join('') : '') +
+      (under.length ? '<div class="muted" style="margin:10px 0 4px">Under target</div>' + under.map(e => row(e, false)).join('') : '') +
+      '</div>';
   }
 
   function srTable(list, byAch) {
@@ -649,6 +660,9 @@
     const actions = Program.actions.filter(a => a.issue.includes(zone));
     const comp = REF.compZone[zone];
     const dists = REF.distributors.filter(d => d.zone === zone);
+    const zrows = ctx.rows.filter(r => r.zone === zone);
+    const terrV = Store.aggBy(zrows, r => r.point).map(e => ({ name: e.name, target: e.target, actual: e.actual, ach: Calc.achievement(e.target, e.actual), variance: e.actual - e.target })).filter(e => e.target > 0);
+    const srV = Store.aggBy(zrows, r => r.sr).map(e => ({ name: e.name, target: e.target, actual: e.actual, ach: Calc.achievement(e.target, e.actual), variance: e.actual - e.target })).filter(e => e.target > 0);
 
     const rows = [
       ['Target', FMT.moneyFull(z.target)], ['Actual', FMT.moneyFull(z.actual)],
@@ -662,11 +676,28 @@
       ['Distributor Dependency', dists.length ? (dists.reduce((s, d) => s + d.dependency, 0) / dists.length * 100).toFixed(0) + '% avg' : '—']
     ];
 
-    openDrawer(zone, '<div class="pill ' + (h.band === 'healthy' ? 'pill-pos' : h.band === 'watch' ? 'pill-warn' : h.band === 'risk' ? 'pill-neg' : h.band === 'critical' ? 'pill-crit' : 'pill-gray') + '" style="margin-bottom:12px"><span class="health-dot" style="background:' + Charts.PAL.health[h.band] + '"></span>' + Health.label(h.band) + (h.score != null ? ' — score ' + h.score + '/100' : '') + '</div>' +
+    openDrawer(zone, '<div class="flex" style="flex-wrap:wrap;gap:8px;margin-bottom:12px"><span class="pill ' + (h.band === 'healthy' ? 'pill-pos' : h.band === 'watch' ? 'pill-warn' : h.band === 'risk' ? 'pill-neg' : h.band === 'critical' ? 'pill-crit' : 'pill-gray') + '"><span class="health-dot" style="background:' + Charts.PAL.health[h.band] + '"></span>' + Health.label(h.band) + (h.score != null ? ' — score ' + h.score + '/100' : '') + '</span>' + (z.ach != null && z.ach >= 110 ? '<span class="pill pill-warn">Re-target recommended</span>' : '') + '</div>' +
       rows.map(r => '<div class="detail-row"><span class="lbl">' + r[0] + '</span><span class="val">' + r[1] + '</span></div>').join('') +
+      varianceSection('Variance Drivers — Territories (Points)', terrV, 'data-point') +
+      varianceSection('Variance Drivers — SRs', srV, 'data-sr') +
       '<div class="drawer-section"><h4>Top Signals</h4>' + (sigs.length ? sigs.slice(0, 5).map((s, i) => '<div class="rca-node" data-signal="' + s.id + '"><span class="n-ico">' + String(i + 1).padStart(2, '0') + '</span><span class="n-name">' + esc(s.type) + '</span><span class="n-meta">' + s.severityLabel + '</span></div>').join('') : '<div class="muted">No signals</div>') + '</div>' +
       '<div class="drawer-section"><h4>Points (Territories)</h4>' + '<div class="tag-list">' + (Store.zonePoints[zone] || []).map(p => '<span class="pill pill-gray" data-point="' + esc(p) + '">' + esc(p) + '</span>').join('') + '</div></div>' +
       '<div class="drawer-section"><h4>Distributors</h4>' + (dists.length ? dists.map(d => '<div class="detail-row"><span class="lbl">' + esc(d.name) + '</span><span class="val">' + (d.dependency * 100).toFixed(0) + '% dep</span></div>').join('') : '<div class="muted">None</div>') + '</div>');
+  }
+
+  function openPointDrawer(point) {
+    const ctx = getContext();
+    const zone = Store.zonePoints.find(z => Store.zonePoints[z].includes(point)) || '—';
+    const e = Store.aggBy(ctx.rows.filter(r => r.point === point), r => r.point)[0];
+    const ach = e ? Calc.achievement(e.target, e.actual) : null;
+    const variance = e ? e.actual - e.target : 0;
+    const srs = Store.aggBy(ctx.rows.filter(r => r.point === point), r => r.sr).map(x => ({ name: x.name, target: x.target, actual: x.actual, ach: Calc.achievement(x.target, x.actual), variance: x.actual - x.target })).filter(x => x.target > 0);
+    openDrawer(point, '<div class="detail-row"><span class="lbl">Zone</span><span class="val">' + esc(zone) + '</span></div>' +
+      '<div class="detail-row"><span class="lbl">Target</span><span class="val">' + FMT.moneyFull(e ? e.target : 0) + '</span></div>' +
+      '<div class="detail-row"><span class="lbl">Actual</span><span class="val">' + FMT.moneyFull(e ? e.actual : 0) + '</span></div>' +
+      '<div class="detail-row"><span class="lbl">Achievement</span><span class="val">' + (ach == null ? '—' : ach.toFixed(1) + '%') + '</span></div>' +
+      '<div class="detail-row"><span class="lbl">Variance</span><span class="val mono ' + (variance >= 0 ? 'h-healthy' : 'h-critical') + '">' + (e ? (variance >= 0 ? '+' : '−') + FMT.money(Math.abs(variance)) : '—') + '</span></div>' +
+      varianceSection('Variance Drivers — SRs', srs, 'data-sr'));
   }
 
   function openSrDrawer(sr) {
@@ -727,12 +758,14 @@
   document.addEventListener('click', function (ev) {
     const zoneEl = ev.target.closest('[data-zone]');
     const srEl = ev.target.closest('[data-sr]');
+    const ptEl = ev.target.closest('[data-point]');
     const sigEl = ev.target.closest('[data-signal]');
     const rsEl = ev.target.closest('[data-research]');
     const mmEl = ev.target.closest('[data-mapmetric]');
     if (mmEl) { state.mapMetric = mmEl.getAttribute('data-mapmetric'); renderView(state.view); return; }
     if (zoneEl) { openZoneDrawer(zoneEl.getAttribute('data-zone')); return; }
     if (srEl) { openSrDrawer(srEl.getAttribute('data-sr')); return; }
+    if (ptEl) { openPointDrawer(ptEl.getAttribute('data-point')); return; }
     if (sigEl) { openSignalDrawer(sigEl.getAttribute('data-signal')); return; }
     if (rsEl) { openResearchDrawer(rsEl.getAttribute('data-research')); return; }
   });

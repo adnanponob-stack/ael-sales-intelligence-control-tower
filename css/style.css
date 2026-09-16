@@ -356,6 +356,8 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .detail-row:last-child { border-bottom: none; }
 .detail-row .lbl { color: var(--muted); }
 .detail-row .val { font-weight: 600; text-align: right; }
+.detail-row.clickable { cursor: pointer; }
+.detail-row.clickable:hover .lbl { color: var(--accent); }
 .drawer-section { margin-top: 16px; }
 .drawer-section h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin: 0 0 8px; }
 
