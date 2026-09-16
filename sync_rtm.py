@@ -358,15 +358,15 @@ def main():
         print("      zones=%d  rows=%d  actual=BDT %.0f  target=BDT %.0f" % (
             len(zone_set), len(rows), total_amount, sum(r[6] for r in rows)))
 
-    # ---- bump data.js version in index.html so browsers fetch the fresh file ----
+    # ---- bump cache-buster versions on all assets in index.html ----
     html_path = os.path.join(base, "index.html")
     with open(html_path, encoding="utf-8") as f:
         html = f.read()
     new_v = str(int(time.time()))
-    html = re.sub(r'js/data\.js\?v=\d+', 'js/data.js?v=' + new_v, html)
+    html = re.sub(r'\?v=\d+', '?v=' + new_v, html)
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(html)
-    print("      bumped index.html data.js version -> %s" % new_v)
+    print("      bumped index.html asset versions -> %s" % new_v)
 
     # ---- write a small manifest for traceability ----
     manifest = {
