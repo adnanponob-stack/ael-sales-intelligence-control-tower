@@ -31,6 +31,10 @@ TOOL_NAME = "ExecuteRtmQueryAsync"
 # ---- date range to sync (YYYY-MM-DD). Default: current year to date ----
 START_DATE = "2026-01-01"
 
+# ---- Akij Essential (Distributor) identity ----
+AEL_BUSINESS_UNIT = 144   # intBusinessUnitId on deliveries
+AEL_HIERARCHY_L1 = 22600  # L1 in tblTerritoryInfoSetup = "Akij Essential (Distributor)"
+
 # ---- target model ----
 # "memo_x_avg" : Target (BDT) = (memo target count) x (avg delivery value), Actual = BDT amount
 # "memo_count" : Target = memo target count, Actual = delivery count (consistent activity units)
@@ -205,8 +209,9 @@ SELECT d.strTerritoryName AS Territory,
        COUNT(*) AS Cnt
 FROM rtm.tblOutletDeliveryHeader d WITH (NOLOCK)
 LEFT JOIN rtm.tblTerritoryInfoSetup s WITH (NOLOCK)
-  ON s.L9 = d.intTerritoryid AND s.isActive = 1 AND s.intLevelId = 9
-WHERE d.dteDeliveryDate >= '{start}' AND d.dteDeliveryDate < '{end}'
+  ON s.L9 = d.intTerritoryid AND s.isActive = 1 AND s.intLevelId = 9 AND s.L1 = {ael_l1}
+WHERE d.intBusinessUnitId = {ael_bu}
+  AND d.dteDeliveryDate >= '{start}' AND d.dteDeliveryDate < '{end}'
   AND ABS(CAST(HASHBYTES('MD5', ISNULL(d.strTerritoryName, '')) AS INT)) % {buckets} = {bucket}
 GROUP BY d.strTerritoryName, s.NL5, s.NL7, s.NL8, YEAR(d.dteDeliveryDate), MONTH(d.dteDeliveryDate)
 """
@@ -239,7 +244,7 @@ def main():
     end_date = time.strftime("%Y-%m-%d", time.gmtime(time.time() + 86400))
 
     print("[1/4] Fetching actual deliveries (live, %d buckets) ..." % BUCKETS)
-    actual = paged_query(SQL_ACTUAL, api_key, start=START_DATE, end=end_date)
+    actual = paged_query(SQL_ACTUAL, api_key, start=START_DATE, end=end_date, ael_l1=AEL_HIERARCHY_L1, ael_bu=AEL_BUSINESS_UNIT)
     print("      %d rows" % len(actual))
 
     print("[2/4] Fetching memo targets (%d buckets) ..." % BUCKETS)
