@@ -61,6 +61,35 @@ REGION_COORDS = {
     "West-L": [23.85, 88.70],
 }
 
+# ---- district/zone name -> [lat, lng] (schematic map placement) ----
+DISTRICT_COORDS = {
+    "Dhaka": [23.81, 90.41], "Dhanmondi": [23.75, 90.37], "Mirpur": [23.82, 90.37],
+    "Gulshan": [23.79, 90.42], "Uttara": [23.88, 90.39], "Jatrabari": [23.70, 90.43],
+    "Malibag": [23.75, 90.42], "Savar": [23.85, 90.26], "Keraniganj": [23.68, 90.35],
+    "Mohammadpur": [23.77, 90.36], "Dohar": [23.59, 90.12], "Nawabganj": [23.66, 90.17],
+    "Narayanganj": [23.62, 90.50], "Munshiganj": [23.55, 90.53], "Narsingdi": [23.92, 90.72],
+    "Manikganj": [23.86, 90.00], "Gazipur": [23.99, 90.42], "Tangail": [24.25, 89.92],
+    "Mymensingh": [24.75, 90.40], "Jamalpur": [24.92, 89.94], "Netrokona": [24.88, 90.73],
+    "Kishoreganj": [24.44, 90.78], "Brahmanbaria": [23.95, 91.11], "Cumilla": [23.46, 91.18],
+    "Chandpur": [23.23, 90.65], "Noakhali": [22.87, 91.10], "Feni": [23.02, 91.40],
+    "Lakshmipur": [22.94, 90.83], "Chittagong": [22.33, 91.83], "Cox's Bazar": [21.43, 91.97],
+    "Khagrachhari": [23.11, 91.99], "Rangamati": [22.64, 92.18], "Bandarban": [22.20, 92.22],
+    "Sylhet": [24.89, 91.87], "Moulvibazar": [24.48, 91.77], "Habiganj": [24.38, 91.42],
+    "Sunamganj": [25.07, 91.40], "Khulna": [22.82, 89.55], "Bagerhat": [22.65, 89.79],
+    "Satkhira": [22.72, 89.07], "Jessore": [23.16, 89.21], "Jhenaidah": [23.54, 89.18],
+    "Magura": [23.49, 89.42], "Narail": [23.17, 89.50], "Kushtia": [23.90, 89.12],
+    "Chuadanga": [23.64, 88.85], "Meherpur": [23.76, 88.63], "Barishal": [22.70, 90.37],
+    "Bhola": [22.68, 90.65], "Patuakhali": [22.36, 90.33], "Barguna": [22.16, 90.13],
+    "Jhalokathi": [22.64, 90.20], "Pirojpur": [22.58, 89.97], "Rajshahi": [24.37, 88.60],
+    "Natore": [24.42, 89.00], "Pabna": [24.00, 89.24], "Sirajganj": [24.45, 89.70],
+    "Bogra": [24.85, 89.37], "Naogaon": [24.81, 88.95], "Joypurhat": [25.10, 89.03],
+    "Rangpur": [25.75, 89.25], "Dinajpur": [25.62, 88.63], "Thakurgaon": [26.03, 88.46],
+    "Panchagarh": [26.33, 88.56], "Nilphamari": [25.93, 88.85], "Gaibandha": [25.33, 89.54],
+    "Kurigram": [25.81, 89.65], "Lalmonirhat": [25.92, 89.45], "Faridpur": [23.60, 89.84],
+    "Gopalganj": [23.01, 89.83], "Madaripur": [23.17, 90.21], "Shariatpur": [23.24, 90.35],
+    "Rajbari": [23.76, 89.64],
+}
+
 # ============================================================================
 # MCP client (stateless JSON-RPC over HTTP)
 # ============================================================================
@@ -165,34 +194,40 @@ def num(v):
 # Query definitions
 # ============================================================================
 SQL_ACTUAL = """
-SELECT strTerritoryName AS Territory,
-       YEAR(dteDeliveryDate) AS Yr,
-       MONTH(dteDeliveryDate) AS Mn,
-       SUM(numTotalDeliveryAmount) AS Amount,
+SELECT d.strTerritoryName AS Territory,
+       MAX(d.intTerritoryid) AS TerrId,
+       COALESCE(s.NL5, '') AS Division,
+       COALESCE(s.NL7, '') AS Zone,
+       COALESCE(s.NL8, d.strTerritoryName) AS Point,
+       YEAR(d.dteDeliveryDate) AS Yr,
+       MONTH(d.dteDeliveryDate) AS Mn,
+       SUM(d.numTotalDeliveryAmount) AS Amount,
        COUNT(*) AS Cnt
-FROM rtm.tblOutletDeliveryHeader WITH (NOLOCK)
-WHERE dteDeliveryDate >= '{start}' AND dteDeliveryDate < '{end}'
-  AND ABS(CAST(HASHBYTES('MD5', ISNULL(strTerritoryName, '')) AS INT)) % {buckets} = {bucket}
-GROUP BY strTerritoryName, YEAR(dteDeliveryDate), MONTH(dteDeliveryDate)
+FROM rtm.tblOutletDeliveryHeader d WITH (NOLOCK)
+LEFT JOIN rtm.tblTerritoryInfoSetup s WITH (NOLOCK)
+  ON s.L9 = d.intTerritoryid AND s.isActive = 1 AND s.intLevelId = 9
+WHERE d.dteDeliveryDate >= '{start}' AND d.dteDeliveryDate < '{end}'
+  AND ABS(CAST(HASHBYTES('MD5', ISNULL(d.strTerritoryName, '')) AS INT)) % {buckets} = {bucket}
+GROUP BY d.strTerritoryName, s.NL5, s.NL7, s.NL8, YEAR(d.dteDeliveryDate), MONTH(d.dteDeliveryDate)
 """
 
 SQL_TARGET = """
 SELECT strTerritoryName AS Territory,
-       strRegionName AS Region,
-       strAreaName AS Area,
        intYear AS Yr,
        intMonth AS Mn,
        SUM(intTotalMemoTarget) AS MemoTarget
 FROM rtm.tblMemoTargetSetup WITH (NOLOCK)
 WHERE isActive = 1 AND intYear = {year}
   AND ABS(CAST(HASHBYTES('MD5', ISNULL(strTerritoryName, '')) AS INT)) % {buckets} = {bucket}
-GROUP BY strTerritoryName, strRegionName, strAreaName, intYear, intMonth
+GROUP BY strTerritoryName, intYear, intMonth
 """
 
 SQL_EMPLOYEE = """
-SELECT strTerritoryName AS Territory, strEmployeeName AS Employee
-FROM rtm.tblEmployeeTerritory WITH (NOLOCK)
-WHERE isActive = 1
+SELECT intTerritoryId AS TerrId, MAX(strEmployeeName) AS Employee
+FROM rtm.tblSalesForceDetails WITH (NOLOCK)
+WHERE isActive = 1 AND strEmployeeName IS NOT NULL
+  AND strEmployeeName NOT LIKE '%demonstration%' AND strEmployeeName NOT LIKE '%Test%'
+GROUP BY intTerritoryId
 """
 
 
@@ -214,30 +249,26 @@ def main():
     print("[3/4] Fetching employee-territory mapping ...")
     h_emp, r_emp = rtm_query(SQL_EMPLOYEE, api_key)
     emp = rows_to_dicts(h_emp, r_emp)
-    emp_by_terr = {}
+    emp_by_id = {}
     for e in emp:
-        t = (e.get("Territory") or "").strip()
-        if t and t not in emp_by_terr:
-            emp_by_terr[t] = (e.get("Employee") or "").strip()
-    print("      %d territories mapped" % len(emp_by_terr))
+        tid = str(e.get("TerrId") or "").strip()
+        nm = (e.get("Employee") or "").strip()
+        if tid and nm and tid not in emp_by_id:
+            emp_by_id[tid] = nm
+    print("      %d employees mapped" % len(emp_by_id))
 
     if not actual:
         print("!! No live delivery data found — aborting (keep existing data.js).")
         return 1
 
-    # ---- build target lookup: (territory, yr, mn) -> (memoTarget, region, area) ----
+    # ---- build target lookup: (territory, yr, mn) -> memo target ----
     tgt_map = {}
     for t in target:
         terr = (t.get("Territory") or "").strip()
         yr = int(num(t.get("Yr")))
         mn = int(num(t.get("Mn")))
         key = (terr, yr, mn)
-        cur = tgt_map.get(key)
-        if cur is None:
-            tgt_map[key] = (num(t.get("MemoTarget")), (t.get("Region") or "").strip(), (t.get("Area") or "").strip())
-        else:
-            # accumulate target amounts for the same territory/month
-            cur[0] += num(t.get("MemoTarget"))
+        tgt_map[key] = tgt_map.get(key, 0.0) + num(t.get("MemoTarget"))
 
     # ---- national average delivery value (for memo_x_avg model) ----
     total_amount = sum(num(a.get("Amount")) for a in actual)
@@ -259,12 +290,11 @@ def main():
         mn = int(num(a.get("Mn")))
         amount = num(a.get("Amount"))
         cnt = num(a.get("Cnt"))
-        tinfo = tgt_map.get((terr, yr, mn))
-        memotarget, region, area = (tinfo if tinfo else (0.0, "", ""))
-
-        zone = region or area or "National"
-        point = terr
-        sr = emp_by_terr.get(terr, terr)
+        zone = (a.get("Zone") or "").strip() or (a.get("Division") or "").strip() or "National"
+        point = (a.get("Point") or "").strip() or terr
+        division = (a.get("Division") or "").strip() or zone
+        memotarget = tgt_map.get((terr, yr, mn), 0.0)
+        sr = emp_by_id.get(str(a.get("TerrId") or "").strip(), terr)
 
         if TARGET_MODEL == "memo_count":
             target_val = memotarget
@@ -275,14 +305,21 @@ def main():
 
         if mn < 1 or mn > 12:
             continue
-        rows.append([sr, zone, point, area or region or zone, region or zone, mn - 1, round(target_val), round(actual_val)])
+        # [SR, Zone, Point, ZM, DSM, monthIdx, target, actual]
+        rows.append([sr, zone, point, zone, division, mn - 1, round(target_val), round(actual_val)])
         if zone not in zone_set:
             zone_set[zone] = True
 
-    # ---- region coordinates ----
+    # ---- zone coordinates ----
     def coord_for(zone):
         if zone in REGION_COORDS:
             return REGION_COORDS[zone]
+        key = zone.replace(" Zone", "").replace(" Point", "").strip()
+        if key in DISTRICT_COORDS:
+            return DISTRICT_COORDS[key]
+        tok = key.split(" ")[0] if key.split(" ") else key
+        if tok in DISTRICT_COORDS:
+            return DISTRICT_COORDS[tok]
         h = sum(ord(c) for c in zone)
         lat = 21.5 + (h % 50) / 10.0
         lng = 88.5 + (h % 40) / 10.0
@@ -343,8 +380,21 @@ def main():
     # ---- optional git push ----
     if push:
         import subprocess
+        import shutil
+
+        def find_git():
+            candidates = [
+                os.path.join(os.environ.get("ProgramFiles", r"C:\Program Files"), "Git", "cmd", "git.exe"),
+                os.path.join(os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"), "Git", "cmd", "git.exe"),
+                os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "Git", "cmd", "git.exe"),
+            ]
+            for c in candidates:
+                if os.path.exists(c):
+                    return c
+            return "git" if shutil.which("git") else "git"
+
         def git(*args):
-            return subprocess.run(["git"] + list(args), cwd=base, capture_output=True, text=True)
+            return subprocess.run([find_git()] + list(args), cwd=base, capture_output=True, text=True)
 
         git("add", "js/data.js", "js/data.meta.json", "index.html")
         git("commit", "-m", "Sync live RTM data (%s)" % today)
