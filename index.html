@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AEL Sales Intelligence Control Tower</title>
+<link rel="icon" href="data:," />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css?v=7" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app">
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">AEL</div>
+      <div class="brand-text">
+        <div class="brand-title">Akij Essential</div>
+        <div class="brand-sub">Sales Intelligence Control Tower</div>
+      </div>
+    </div>
+
+    <nav class="nav" id="nav">
+      <div class="nav-group">Intelligence</div>
+      <a class="nav-item active" data-view="overview"><span class="nav-num">01</span> Executive Overview</a>
+      <a class="nav-item" data-view="performance"><span class="nav-num">02</span> Sales Performance</a>
+      <a class="nav-item" data-view="geography"><span class="nav-num">03</span> Geographic Intelligence</a>
+      <a class="nav-item" data-view="manpower"><span class="nav-num">04</span> Manpower Intelligence</a>
+      <a class="nav-item" data-view="customer"><span class="nav-num">05</span> Customer Intelligence</a>
+      <a class="nav-item" data-view="competitor"><span class="nav-num">06</span> Competitor Intelligence</a>
+      <a class="nav-item" data-view="market"><span class="nav-num">07</span> Market Intelligence</a>
+
+      <div class="nav-group">Diagnosis &amp; Action</div>
+      <a class="nav-item" data-view="signals"><span class="nav-num">08</span> Sales Signal Center</a>
+      <a class="nav-item" data-view="rootcause"><span class="nav-num">09</span> Root Cause Analysis</a>
+      <a class="nav-item" data-view="research"><span class="nav-num">10</span> CI Research Queue</a>
+      <a class="nav-item" data-view="impact"><span class="nav-num">11</span> Business Impact</a>
+      <a class="nav-item" data-view="action"><span class="nav-num">12</span> Management Action</a>
+      <a class="nav-item" data-view="monitoring"><span class="nav-num">13</span> Impact Monitoring</a>
+
+      <div class="nav-group">Governance</div>
+      <a class="nav-item" data-view="dataquality"><span class="nav-num">14</span> Data Quality</a>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="cycle-mini" id="cycleMini">
+        <div class="cycle-title">Intelligence Cycle</div>
+        <div class="cycle-steps" id="cycleSteps"></div>
+      </div>
+      <div class="foot-credits">Akij Essential Ltd. &middot; BI v1.0</div>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN ===== -->
+  <div class="main">
+    <!-- Header -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" title="Toggle menu">&#9776;</button>
+        <div>
+          <h1 class="topbar-title"><span class="brand-red">AEL</span> Sales Intelligence Control Tower</h1>
+          <div class="topbar-sub">Sales Performance &rarr; Intelligence &rarr; Decision</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="period-chip">
+          <span class="chip-label">Data Period</span>
+          <span class="chip-value" id="periodValue">Jan &ndash; Sep 2026</span>
+        </div>
+        <div class="period-chip">
+          <span class="chip-label">Last Updated</span>
+          <span class="chip-value" id="updatedValue">Sep 2026</span>
+        </div>
+        <button class="icon-btn" id="refreshBtn" title="Refresh">&#x21bb;</button>
+        <button class="icon-btn" id="themeToggle" title="Toggle theme">&#x263e;</button>
+        <div class="notification-wrap">
+          <button class="icon-btn" id="notifBtn" title="Notifications">&#128276;<span class="badge" id="notifBadge">0</span></button>
+          <div class="notif-panel" id="notifPanel"></div>
+        </div>
+        <button class="icon-btn" id="searchBtn" title="Search">&#128269;</button>
+        <div class="user-chip">
+          <div class="avatar">AI</div>
+          <div>
+            <div class="user-name">Analyst</div>
+            <div class="user-role">Management</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Global filters -->
+    <div class="filterbar">
+      <div class="filterbar-title">Filters</div>
+      <div class="filter" id="fMonth">
+        <label>Month</label>
+        <select id="selMonth"></select>
+      </div>
+      <div class="filter" id="fScope">
+        <label>Scope</label>
+        <select id="selScope">
+          <option value="ytd">YTD (Jan &ndash; Sep)</option>
+          <option value="mtd">MTD (selected month)</option>
+        </select>
+      </div>
+      <div class="filter">
+        <label>DSM</label>
+        <select id="selDsm"></select>
+      </div>
+      <div class="filter">
+        <label>Zone</label>
+        <select id="selZone"></select>
+      </div>
+      <div class="filter">
+        <label>SR / Employee</label>
+        <select id="selSr"></select>
+      </div>
+      <button class="btn btn-ghost" id="resetFilters">Reset</button>
+      <div class="filterbar-meta">
+        <span class="dot dot-green"></span> <span id="filterSummary">National &middot; All months</span>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <main class="content" id="content">
+      <section class="view active" data-view-panel="overview"></section>
+      <section class="view" data-view-panel="performance"></section>
+      <section class="view" data-view-panel="geography"></section>
+      <section class="view" data-view-panel="manpower"></section>
+      <section class="view" data-view-panel="customer"></section>
+      <section class="view" data-view-panel="competitor"></section>
+      <section class="view" data-view-panel="market"></section>
+      <section class="view" data-view-panel="signals"></section>
+      <section class="view" data-view-panel="rootcause"></section>
+      <section class="view" data-view-panel="research"></section>
+      <section class="view" data-view-panel="impact"></section>
+      <section class="view" data-view-panel="action"></section>
+      <section class="view" data-view-panel="monitoring"></section>
+      <section class="view" data-view-panel="dataquality"></section>
+    </main>
+  </div>
+</div>
+
+<!-- Drawer -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div id="drawerTitle" class="drawer-title">Details</div>
+    <button class="icon-btn" id="drawerClose">&#10005;</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
+
+<!-- Search overlay -->
+<div class="search-overlay" id="searchOverlay">
+  <div class="search-box">
+    <input id="searchInput" placeholder="Search zone, region, employee, distributor, signal, research&#8230;" autocomplete="off" />
+    <button class="icon-btn" id="searchClose">&#10005;</button>
+  </div>
+  <div class="search-results" id="searchResults"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/data.js?v=7"></script>
+<script src="js/utils.js?v=7"></script>
+<script src="js/signals.js?v=7"></script>
+<script src="js/charts.js?v=7"></script>
+<script src="js/map.js?v=7"></script>
+<script src="js/app.js?v=7"></script>
+</body>
+</html>
