@@ -1,9 +1,34 @@
 /* ============================================================
    AEL Control Tower — map.js
-   Full Bangladesh map (Leaflet) with zone health markers
+   Full Bangladesh choropleth map (zone-wise colour), Leaflet
    ============================================================ */
 const ZoneMap = (function () {
-  let map = null, layerGroup = null, currentContainer = null, onClickCb = null;
+  let map = null, geoLayer = null, currentContainer = null, onClickCb = null;
+  const BD_BOUNDS = [[20.4, 87.8], [26.9, 92.9]];
+
+  // AEL zone -> GADM district (NAME_2)
+  const ZONE_TO_DISTRICT = {
+    "Agrabad Zone": "Chittagong", "Bagerhat Zone": "Bagerhat", "Barishal Zone": "Barisal",
+    "Bhola Zone": "Bhola", "Bogura Zone": "Bogra", "Brahmanbaria Zone": "Brahamanbaria",
+    "Chakbazar Zone": "Dhaka", "Chandpur Zone": "Chandpur", "Chokoria Zone": "Cox'SBazar",
+    "Cox's Bazar Zone": "Cox'SBazar", "Cumilla North Zone": "Comilla", "Cumilla South Zone": "Comilla",
+    "Dhanmondi Zone": "Dhaka", "Dinajpur Zone": "Dinajpur", "Faridpur Zone": "Faridpur",
+    "Feni Zone": "Feni", "Gazipur Zone": "Gazipur", "Gulshan Zone": "Dhaka",
+    "Hobiganj Zone": "Habiganj", "Jamalpur Zone": "Jamalpur", "Jatrabari Zone": "Dhaka",
+    "Jessore Zone": "Jessore", "Jhalokathi Zone": "Jhalokati", "Jhenaidah Zone": "Jhenaidah",
+    "Keraniganj Zone": "Dhaka", "Khagrachori Zone": "Khagrachhari", "Khulna Zone": "Khulna",
+    "Kishoreganj Zone": "Kishoreganj", "Kustia Zone": "Kushtia", "Lakshmipur Zone": "Lakshmipur",
+    "Madaripur Zone": "Madaripur", "Malibag Zone": "Dhaka", "Manikganj Zone": "Manikganj",
+    "Mawna Zone": "Gazipur", "Mirpur Zone": "Dhaka", "Moulvibazar Zone": "Maulvibazar",
+    "Munshiganj Zone": "Munshiganj", "Mymensingh Zone": "Mymensingh", "Naogaon Zone": "Naogaon",
+    "Narayanganj Zone": "Narayanganj", "Narsingdi Zone": "Narsingdi", "Netrokona Zone": "Netrakona",
+    "Noakhali Zone": "Noakhali", "Pabna Zone": "Pabna", "Panchagarh Zone": "Panchagarh",
+    "Patuakhali Zone": "Patuakhali", "Rajshahi Zone": "Rajshahi", "Rangpur Zone": "Rangpur",
+    "Satkania Zone": "Chittagong", "Satkhira Zone": "Satkhira", "Savar Zone": "Dhaka",
+    "Shitakunda Zone": "Chittagong", "Sirajganj Zone": "Sirajganj", "Sonargaon Zone": "Narayanganj",
+    "Sunamganj Zone": "Sunamganj", "Sylhet Zone": "Sylhet", "Tangail Zone": "Tangail",
+    "Tongi Zone": "Gazipur", "Uttara Zone": "Dhaka"
+  };
 
   const metricColor = {
     health: st => Charts.PAL.health[st.health.band] || '#A9B4C0',
@@ -36,11 +61,14 @@ const ZoneMap = (function () {
     if (!el) return;
     el.innerHTML = '';
     el.style.height = el.getAttribute('data-h') || '480px';
-    map = L.map(el, { center: [23.685, 90.356], zoom: 7, zoomControl: true, scrollWheelZoom: false });
+    map = L.map(el, {
+      center: [23.685, 90.356], zoom: 7, zoomControl: true, scrollWheelZoom: false,
+      minZoom: 7, maxZoom: 12, maxBounds: BD_BOUNDS, maxBoundsViscosity: 1.0
+    });
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: 'abcd', maxZoom: 18
     }).addTo(map);
-    layerGroup = L.layerGroup().addTo(map);
+    geoLayer = L.layerGroup().addTo(map);
     currentContainer = containerId;
     setTimeout(() => { if (map) map.invalidateSize(); }, 80);
   }
@@ -53,9 +81,9 @@ const ZoneMap = (function () {
     else if (metric === 'gap') mv = 'BDT ' + FMT.money((st.gapLakh || 0) * 100000);
     else if (metric === 'signals') mv = (st.sigCount || 0) + ' critical';
     else mv = Health.label(h.band);
-    return '<div style="font-family:Inter,sans-serif;min-width:150px">' +
+    return '<div style="font-family:Inter,sans-serif;min-width:160px">' +
       '<div style="font-weight:700;margin-bottom:4px">' + z + '</div>' +
-      '<div>Health: <b class="h-' + h.band + '" style="color:' + (Charts.PAL.health[h.band] || '#999') + '">' + Health.label(h.band) + '</b></div>' +
+      '<div>Health: <b style="color:' + (Charts.PAL.health[h.band] || '#999') + '">' + Health.label(h.band) + '</b></div>' +
       '<div>' + metricLabel + ': <b>' + mv + '</b></div>' +
       '<div>Achievement: <b>' + (h.subscores.achievement != null ? h.subscores.achievement.toFixed(0) + '%' : '—') + '</b></div>' +
       '</div>';
@@ -64,24 +92,37 @@ const ZoneMap = (function () {
   function render(containerId, metric, stats, onZoneClick) {
     if (!map || currentContainer !== containerId) build(containerId);
     onClickCb = onZoneClick;
-    if (!map || !layerGroup) return;
-    layerGroup.clearLayers();
+    if (!map || !geoLayer || !window.BD_GEO) return;
+    geoLayer.clearLayers();
     const colorFn = metricColor[metric] || metricColor.health;
 
+    // district -> [zones]
+    const dz = {};
     Object.keys(stats).forEach(z => {
-      const coord = AEL_DATA.zoneCoord[z];
-      if (!coord) return;
-      const st = stats[z];
-      const sales = st.series.reduce((s, m) => s + m.a, 0);
-      const r = Math.min(14, 6 + Math.sqrt(sales) / 700);
-      const color = colorFn(st);
-
-      const m = L.circleMarker([coord[0], coord[1]], {
-        radius: r, color: '#ffffff', weight: 1.4, fillColor: color, fillOpacity: 0.9
-      }).addTo(layerGroup);
-      m.bindTooltip(tipHtml(z, st, metric), { sticky: true, direction: 'top' });
-      m.on('click', () => { if (onClickCb) onClickCb(z); });
+      const d = ZONE_TO_DISTRICT[z];
+      if (d) { (dz[d] = dz[d] || []).push(z); }
     });
+    const best = zones => {
+      let b = zones[0], bs = -1;
+      zones.forEach(z => { const s = stats[z].series.reduce((x, m) => x + m.a, 0); if (s > bs) { bs = s; b = z; } });
+      return b;
+    };
+
+    L.geoJSON(window.BD_GEO, {
+      style: f => {
+        const zones = dz[f.properties.d];
+        if (!zones) return { color: '#ffffff', weight: 0.6, fillColor: '#C9D2DC', fillOpacity: 0.55 };
+        const b = best(zones);
+        return { color: '#ffffff', weight: 0.9, fillColor: colorFn(stats[b]), fillOpacity: 0.85 };
+      },
+      onEachFeature: (f, layer) => {
+        const zones = dz[f.properties.d];
+        if (!zones) return;
+        const b = best(zones);
+        layer.bindTooltip(tipHtml(b, stats[b], metric), { sticky: true });
+        layer.on('click', () => { if (onClickCb) onClickCb(b); });
+      }
+    }).addTo(geoLayer);
   }
 
   return { build, render };
