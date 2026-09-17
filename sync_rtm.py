@@ -315,6 +315,22 @@ def main():
     if AVG_MEMO_VALUE_OVERRIDE:
         avg_delivery_value = float(AVG_MEMO_VALUE_OVERRIDE)
 
+    # ---- load official PDF target (BDT per zone-month) ----
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    pdf_target = {}
+    pdf_path = os.path.join(base_dir, "js", "pdf_target.json")
+    if os.path.exists(pdf_path):
+        with open(pdf_path, encoding="utf-8") as f:
+            pdf_target = json.load(f).get("zoneMonth", {})
+
+    # ---- zone-month actual (to distribute PDF target proportionally) ----
+    zone_month_actual = {}
+    for a in actual:
+        z = (a.get("Zone") or "").strip() or (a.get("Division") or "").strip() or "National"
+        mi_ = int(num(a.get("Mn"))) - 1
+        key = (z, mi_)
+        zone_month_actual[key] = zone_month_actual.get(key, 0.0) + num(a.get("Amount"))
+
     # ---- build rows ----
     MONTHS = ["January", "February", "March", "April", "May", "June", "July",
               "August", "September", "October", "November", "December"]
@@ -334,7 +350,13 @@ def main():
         memotarget = carried_target(terr, mn)
         sr = emp_by_id.get(str(a.get("TerrId") or "").strip(), terr)
 
-        if TARGET_MODEL == "memo_count":
+        mi_idx = mn - 1
+        # prefer the official PDF BDT target (distributed proportionally to actual)
+        pdf_t = pdf_target.get(zone, {}).get(str(mi_idx))
+        if pdf_t is not None and zone_month_actual.get((zone, mi_idx)):
+            target_val = pdf_t * (amount / zone_month_actual[(zone, mi_idx)])
+            actual_val = amount
+        elif TARGET_MODEL == "memo_count":
             target_val = memotarget
             actual_val = cnt
         else:  # memo_x_avg
@@ -344,7 +366,7 @@ def main():
         if mn < 1 or mn > 12:
             continue
         # [SR, Zone, Point, ZM, DSM, monthIdx, target, actual, volume, targetVolume]
-        rows.append([sr, zone, point, zone, division, mn - 1, round(target_val), round(actual_val), int(cnt), int(round(memotarget))])
+        rows.append([sr, zone, point, zone, division, mi_idx, round(target_val), round(actual_val), int(cnt), int(round(memotarget))])
         if zone not in zone_set:
             zone_set[zone] = True
 
