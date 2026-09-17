@@ -282,14 +282,31 @@ def main():
         print("!! No live delivery data found — aborting (keep existing data.js).")
         return 1
 
-    # ---- build target lookup: (territory, yr, mn) -> memo target ----
-    tgt_map = {}
+    # ---- build target per territory (month -> memo target), then carry-forward ----
+    target_year = int(START_DATE[:4])
+    tgt_by_terr = {}
     for t in target:
         terr = (t.get("Territory") or "").strip()
         yr = int(num(t.get("Yr")))
         mn = int(num(t.get("Mn")))
-        key = (terr, yr, mn)
-        tgt_map[key] = tgt_map.get(key, 0.0) + num(t.get("MemoTarget"))
+        if yr != target_year or mn < 1 or mn > 12:
+            continue
+        d = tgt_by_terr.setdefault(terr, {})
+        d[mn] = d.get(mn, 0.0) + num(t.get("MemoTarget"))
+
+    def carried_target(terr, mn):
+        d = tgt_by_terr.get(terr)
+        if not d:
+            return 0.0
+        best = None
+        for k in sorted(d):
+            if k <= mn:
+                best = d[k]
+            else:
+                break
+        if best is None:
+            best = d[min(d)]
+        return best
 
     # ---- national average delivery value (for memo_x_avg model) ----
     total_amount = sum(num(a.get("Amount")) for a in actual)
@@ -314,7 +331,7 @@ def main():
         zone = (a.get("Zone") or "").strip() or (a.get("Division") or "").strip() or "National"
         point = (a.get("Point") or "").strip() or terr
         division = (a.get("Division") or "").strip() or zone
-        memotarget = tgt_map.get((terr, yr, mn), 0.0)
+        memotarget = carried_target(terr, mn)
         sr = emp_by_id.get(str(a.get("TerrId") or "").strip(), terr)
 
         if TARGET_MODEL == "memo_count":
