@@ -482,6 +482,37 @@
     Charts.line('chPrice', labels, [{ label: 'Market Price', data: mk.marketPrice, color: Charts.PAL.warn }]);
   }
 
+  /* ---------------- 07b PRODUCT (SKU) ---------------- */
+  function renderProduct() {
+    const products = (Store.meta.products || []).slice().sort((a, b) => b.amt - a.amt);
+    const totalAmt = products.reduce((s, p) => s + p.amt, 0);
+    const totalQty = products.reduce((s, p) => s + p.qty, 0);
+    const top = products[0];
+    const topShare = totalAmt > 0 ? (top.amt / totalAmt * 100) : 0;
+    const top15 = products.slice(0, 15);
+    const topVol = products.slice().sort((a, b) => b.qty - a.qty).slice(0, 10);
+
+    $('#content').querySelector('[data-view-panel="product"]').innerHTML =
+      '<div class="section-head"><div><div class="section-title">Product Intelligence</div><div class="section-desc">SKU-wise sales &amp; contribution (live RTM)</div></div></div>' +
+      '<div class="kpi-grid">' +
+        kpiCard('Total SKUs', String(products.length), 'active products') +
+        kpiCard('Top SKU', top ? esc(top.sku) : '—', 'by value') +
+        kpiCard('Top SKU Share', topShare.toFixed(1) + '%', 'of total value') +
+        kpiCard('Total Volume', FMT.money(totalQty), 'units sold') +
+      '</div>' +
+      '<div class="grid grid-2 mb18">' +
+        '<div class="card"><div class="card-title">SKU Sales Contribution (Pareto)</div><div class="card-sub">Top SKUs by value with cumulative %</div><div class="chart-box md"><canvas id="chSkuPareto"></canvas></div></div>' +
+        '<div class="card"><div class="card-title">Top SKUs by Volume</div><div class="card-sub">Units sold</div><div class="chart-box md"><canvas id="chSkuVol"></canvas></div></div>' +
+      '</div>' +
+      '<div class="card"><div class="card-title">SKU Performance</div><div class="card-sub">All products ranked by value</div>' +
+      '<div class="table-wrap"><table class="tbl"><thead><tr><th>#</th><th>SKU</th><th class="num">Value (BDT)</th><th class="num">Units</th><th class="num">Share</th></tr></thead><tbody>' +
+      (products.length ? products.map((p, i) => '<tr class="row"><td class="muted">' + (i + 1) + '</td><td>' + esc(p.sku) + '</td><td class="num mono">' + FMT.moneyFull(p.amt) + '</td><td class="num mono">' + p.qty.toLocaleString('en-IN') + '</td><td class="num mono">' + (totalAmt > 0 ? (p.amt / totalAmt * 100).toFixed(1) + '%' : '—') + '</td></tr>').join('') : '<tr><td colspan="5" class="empty">No SKU data</td></tr>') +
+      '</tbody></table></div></div>';
+
+    Charts.pareto('chSkuPareto', top15.map(p => p.sku), top15.map(p => p.amt));
+    Charts.hbar('chSkuVol', topVol.map(p => p.sku), topVol.map(p => p.qty), () => Charts.PAL.darkblue, 'Units');
+  }
+
   /* ---------------- 08 SIGNALS ---------------- */
   function renderSignals() {
     const all = Signals.all();
@@ -900,7 +931,7 @@
   const renderers = {
     overview: renderOverview, performance: renderPerformance, geography: renderGeography,
     manpower: renderManpower, customer: renderCustomer, competitor: renderCompetitor,
-    market: renderMarket, signals: renderSignals, rootcause: renderRootCause,
+    market: renderMarket, product: renderProduct, signals: renderSignals, rootcause: renderRootCause,
     research: renderResearch, impact: renderImpact, action: renderAction,
     monitoring: renderMonitoring, dataquality: renderDataQuality
   };

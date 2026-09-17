@@ -257,6 +257,18 @@ WHERE dteDeliveryDate >= '{start}' AND dteDeliveryDate < '{end}'
 GROUP BY MONTH(dteDeliveryDate)
 """
 
+SQL_PRODUCTS = """
+SELECT r.strProductName AS SKU,
+       SUM(r.numDeliveryQuantity) AS Qty,
+       SUM(r.numDeliveryAmount) AS Amt
+FROM rtm.tblOutletDeliveryRow r WITH (NOLOCK)
+JOIN rtm.tblOutletDeliveryHeader h WITH (NOLOCK) ON r.intDeliveryId = h.intDeliveryId
+WHERE h.dteDeliveryDate >= '{start}' AND h.dteDeliveryDate < '{end}'
+  AND h.intBusinessUnitId = {ael_bu}
+GROUP BY r.strProductName
+ORDER BY Amt DESC
+"""
+
 
 def main():
     push = "--push" in sys.argv
@@ -305,6 +317,13 @@ def main():
             monthly_distributors[mi_] = int(num(m.get("Distributors")))
             monthly_deliveries[mi_] = int(num(m.get("Deliveries")))
     print("      customers by month: %s" % monthly_customers)
+
+    print("[6/7] Fetching SKU-wise performance ...")
+    h_sku, r_sku = rtm_query(SQL_PRODUCTS.format(start=START_DATE, end=end_date, ael_bu=AEL_BUSINESS_UNIT), api_key, limit=200)
+    products = []
+    for p in rows_to_dicts(h_sku, r_sku):
+        products.append({"sku": (p.get("SKU") or "").strip(), "qty": round(num(p.get("Qty"))), "amt": round(num(p.get("Amt")))})
+    print("      %d SKUs" % len(products))
 
     if not actual:
         print("!! No live delivery data found — aborting (keep existing data.js).")
@@ -435,6 +454,7 @@ def main():
             "monthlySalesOfficers": monthly_officers,
             "monthlyDistributors": monthly_distributors,
             "monthlyDeliveries": monthly_deliveries,
+            "products": products,
         },
     }
     js = ("(function(){\nwindow.AEL_DATA = "
@@ -445,7 +465,7 @@ def main():
     with open(data_path, "w", encoding="utf-8") as f:
         f.write(js)
 
-    print("[6/6] Wrote %s" % data_path)
+    print("[7/7] Wrote %s" % data_path)
     if TARGET_MODEL == "memo_count":
         print("      zones=%d  rows=%d  actual=%.0f deliveries  target=%.0f memos" % (
             len(zone_set), len(rows), sum(r[7] for r in rows), sum(r[6] for r in rows)))

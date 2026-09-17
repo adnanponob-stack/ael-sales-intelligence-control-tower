@@ -136,7 +136,8 @@ const Charts = (function () {
     },
 
     /* Horizontal bar with per-item colors */
-    hbar(id, labels, values, colorFn) {
+    hbar(id, labels, values, colorFn, unit) {
+      unit = unit || 'BDT';
       return make(id, {
         type: 'bar',
         data: { labels, datasets: [{ data: values, backgroundColor: values.map((v, i) => colorFn ? colorFn(v, i) : PAL.darkblue), borderRadius: 4, barThickness: 16 }] },
@@ -144,7 +145,7 @@ const Charts = (function () {
           indexAxis: 'y',
           plugins: { legend: { display: false } },
           scales: {
-            x: { title: { display: true, text: 'BDT', color: theme().tick, font: { size: 10 } }, grid: { color: theme().grid }, ticks: { callback: v => 'BDT ' + FMT.money(v) } },
+            x: { title: { display: true, text: unit, color: theme().tick, font: { size: 10 } }, grid: { color: theme().grid }, ticks: { callback: v => (unit === 'BDT' ? 'BDT ' : '') + FMT.money(v) } },
             y: { grid: { display: false }, ticks: { color: theme().tick, font: { size: 10.5 } } }
           }
         })
