@@ -212,6 +212,28 @@ const Charts = (function () {
         data: { labels, datasets: series.map(s => ({ label: s.label, data: s.data, borderColor: s.color || PAL.darkblue, backgroundColor: s.fill ? (s.color || PAL.darkblue) : 'transparent', tension: .3, pointRadius: 2, borderWidth: 2, fill: !!s.fill })) },
         options: base({ scales: { y: { ticks: { callback: opts.pct ? (v => v + '%') : undefined } } } })
       });
+    },
+
+    /* Customer activity: customers (bars) + sales officers (line, right axis) */
+    custMonthly(id, labels, customers, officers) {
+      const t = theme();
+      return make(id, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            { type: 'bar', label: 'Active Customers', data: customers, backgroundColor: PAL.darkblue, yAxisID: 'y', borderRadius: 3, order: 2 },
+            { type: 'line', label: 'Active Sales Officers', data: officers, borderColor: PAL.pos, backgroundColor: PAL.pos, yAxisID: 'y1', pointRadius: 3, borderWidth: 2, tension: .3, order: 1 }
+          ]
+        },
+        options: base({
+          scales: {
+            x: { grid: { display: false }, ticks: { color: t.tick } },
+            y: { title: { display: true, text: 'Customers', color: t.tick, font: { size: 10 } }, ticks: { color: t.tick, callback: v => FMT.money(v) } },
+            y1: { position: 'right', title: { display: true, text: 'Sales Officers', color: PAL.pos, font: { size: 10 } }, grid: { drawOnChartArea: false }, ticks: { color: PAL.pos } }
+          }
+        })
+      });
     }
   };
 })();

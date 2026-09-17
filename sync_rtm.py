@@ -245,6 +245,18 @@ WHERE dteDeliveryDate >= '{start}' AND dteDeliveryDate < '{end}'
   AND intBusinessUnitId = {ael_bu}
 """
 
+SQL_MONTHLY_CUSTOMERS = """
+SELECT MONTH(dteDeliveryDate) AS Mn,
+       COUNT(DISTINCT intOutletId) AS Customers,
+       COUNT(DISTINCT intActionBy) AS Officers,
+       COUNT(DISTINCT intBusinessPartnerId) AS Distributors,
+       COUNT(*) AS Deliveries
+FROM rtm.tblOutletDeliveryHeader WITH (NOLOCK)
+WHERE dteDeliveryDate >= '{start}' AND dteDeliveryDate < '{end}'
+  AND intBusinessUnitId = {ael_bu}
+GROUP BY MONTH(dteDeliveryDate)
+"""
+
 
 def main():
     push = "--push" in sys.argv
@@ -272,11 +284,27 @@ def main():
             emp_by_id[tid] = nm
     print("      %d employees mapped" % len(emp_by_id))
 
-    print("[4/5] Fetching live customer / sales-officer / distributor counts ...")
+    print("[4/6] Fetching live customer / sales-officer / distributor counts ...")
     h_meta, r_meta = rtm_query(SQL_META.format(start=START_DATE, end=end_date, ael_bu=AEL_BUSINESS_UNIT), api_key)
     meta_row = rows_to_dicts(h_meta, r_meta)
     meta_counts = meta_row[0] if meta_row else {}
     print("      %s" % meta_counts)
+
+    print("[5/6] Fetching monthly customer activity ...")
+    h_mo, r_mo = rtm_query(SQL_MONTHLY_CUSTOMERS.format(start=START_DATE, end=end_date, ael_bu=AEL_BUSINESS_UNIT), api_key)
+    monthly_rows = rows_to_dicts(h_mo, r_mo)
+    monthly_customers = [0] * 12
+    monthly_officers = [0] * 12
+    monthly_distributors = [0] * 12
+    monthly_deliveries = [0] * 12
+    for m in monthly_rows:
+        mi_ = int(num(m.get("Mn"))) - 1
+        if 0 <= mi_ < 12:
+            monthly_customers[mi_] = int(num(m.get("Customers")))
+            monthly_officers[mi_] = int(num(m.get("Officers")))
+            monthly_distributors[mi_] = int(num(m.get("Distributors")))
+            monthly_deliveries[mi_] = int(num(m.get("Deliveries")))
+    print("      customers by month: %s" % monthly_customers)
 
     if not actual:
         print("!! No live delivery data found — aborting (keep existing data.js).")
@@ -403,6 +431,10 @@ def main():
             "activeCustomers": int(num(meta_counts.get("ActiveCustomers"))),
             "activeSalesOfficers": int(num(meta_counts.get("ActiveSalesOfficers"))),
             "distributors": int(num(meta_counts.get("Distributors"))),
+            "monthlyCustomers": monthly_customers,
+            "monthlySalesOfficers": monthly_officers,
+            "monthlyDistributors": monthly_distributors,
+            "monthlyDeliveries": monthly_deliveries,
         },
     }
     js = ("(function(){\nwindow.AEL_DATA = "
@@ -413,7 +445,7 @@ def main():
     with open(data_path, "w", encoding="utf-8") as f:
         f.write(js)
 
-    print("[5/5] Wrote %s" % data_path)
+    print("[6/6] Wrote %s" % data_path)
     if TARGET_MODEL == "memo_count":
         print("      zones=%d  rows=%d  actual=%.0f deliveries  target=%.0f memos" % (
             len(zone_set), len(rows), sum(r[7] for r in rows), sum(r[6] for r in rows)))

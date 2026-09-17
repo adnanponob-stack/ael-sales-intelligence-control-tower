@@ -293,7 +293,7 @@
   }
 
   function zoneTable(zstats) {
-    return '<div class="table-wrap"><table class="tbl"><thead><tr><th>Zone</th><th>DSM</th><th>Health</th><th class="num">Target</th><th class="num">Actual</th><th class="num">Gap</th><th class="num">Ach %</th><th class="num">Trend</th><th class="num">Signals</th></tr></thead><tbody>' +
+    return '<div class="table-wrap"><table class="tbl"><thead><tr><th>Zone</th><th>Division</th><th>Health</th><th class="num">Target</th><th class="num">Actual</th><th class="num">Gap</th><th class="num">Ach %</th><th class="num">Trend</th><th class="num">Signals</th></tr></thead><tbody>' +
       zstats.map(z => {
         const h = z.health;
         const trend = h.subscores.trendPP;
@@ -353,6 +353,9 @@
     const topCust = REF.customers.slice().sort((a, b) => b.monthlyValue - a.monthlyValue).slice(0, 15);
     const dep = REF.distributors.slice().sort((a, b) => b.dependency - a.dependency).slice(0, 10);
     const cSignals = Signals.all().filter(s => s.category === 'customer');
+    const mLabels = M.slice(0, ctx.upto + 1);
+    const mCustomers = mLabels.map((_, i) => (Store.meta.monthlyCustomers ? Store.meta.monthlyCustomers[i] : 0));
+    const mOfficers = mLabels.map((_, i) => (Store.meta.monthlySalesOfficers ? Store.meta.monthlySalesOfficers[i] : 0));
 
     $('#content').querySelector('[data-view-panel="customer"]').innerHTML =
       '<div class="section-head"><div><div class="section-title">Customer Intelligence</div><div class="section-desc">Customer, distributor &amp; channel intelligence</div></div></div>' +
@@ -362,6 +365,7 @@
         kpiCard('Distributors', String(distN).replace(/\B(?=(\d{3})+(?!\d))/g, ','), 'in network (live RTM)') +
         kpiCard('Customer Signals', String(cSignals.length), 'open', null, 'down') +
       '</div>' +
+      '<div class="card mb18"><div class="card-title">Monthly Customer Activity</div><div class="card-sub">Active customers (outlets) &amp; active sales officers per month</div><div class="chart-box md"><canvas id="chCustMonth"></canvas></div></div>' +
       '<div class="grid grid-2 mb18">' +
         '<div class="card"><div class="card-title">Customer Sales Contribution (Pareto)</div><div class="card-sub">Top customers by monthly value</div><div class="chart-box md"><canvas id="chPareto"></canvas></div></div>' +
         '<div class="card"><div class="card-title">Distributor Dependency</div><div class="card-sub">Zones overly reliant on a single distributor</div><div class="table-wrap"><table class="tbl"><thead><tr><th>Distributor</th><th>Zone</th><th class="num">Dependency</th><th>Status</th></tr></thead><tbody>' +
@@ -370,6 +374,7 @@
       '</div>' +
       '<div class="card"><div class="card-title">Customer Signals</div>' + signalList(cSignals.slice(0, 8)) + '</div>';
 
+    Charts.custMonthly('chCustMonth', mLabels, mCustomers, mOfficers);
     Charts.pareto('chPareto', topCust.map(c => c.name), topCust.map(c => c.monthlyValue));
   }
 
@@ -606,7 +611,7 @@
       '<div class="card"><div class="card-title">Quality Checks</div><div class="card-sub">Score = 100 − (issue categories × 20) − missing-target% − duplicate%</div>' +
       '<div class="table-wrap"><table class="tbl"><thead><tr><th>Check</th><th class="num">Records</th><th class="num">% of Total</th><th>Status</th></tr></thead><tbody>' +
         dqRow('Total records', total, 0, 'info') +
-        dqRow('Unassigned DSM mapping', blankDsm, blankDsm / total * 100, blankDsm > 0 ? 'neg' : 'pos') +
+        dqRow('Unassigned Division mapping', blankDsm, blankDsm / total * 100, blankDsm > 0 ? 'neg' : 'pos') +
         dqRow('Zero target (missing target)', zeroTarget, zeroTarget / total * 100, zeroTarget > 0 ? 'neg' : 'pos') +
         dqRow('Zero achievement', zeroActual, zeroActual / total * 100, zeroActual > total * 0.1 ? 'neg' : 'warn') +
         dqRow('Duplicate SR-zone-month', dupes, dupes / total * 100, dupes > 0 ? 'neg' : 'pos') +
@@ -813,7 +818,7 @@
   function exportTable() {
     const ctx = getContext();
     const z = zoneStats(ctx.rows, ctx.upto);
-    const head = ['Zone', 'DSM', 'Target', 'Actual', 'Gap', 'Achievement%', 'Health'];
+    const head = ['Zone', 'Division', 'Target', 'Actual', 'Gap', 'Achievement%', 'Health'];
     const lines = [head.join(',')];
     z.forEach(x => lines.push([x.name, Store.zoneDsm[x.name] || '', x.target, x.actual, x.gap, x.ach == null ? '' : x.ach.toFixed(2), Health.label(x.health.band)].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')));
     const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
@@ -867,7 +872,7 @@
     const { year, avail } = periodInfo();
     const mSel = $('#selMonth');
     mSel.innerHTML = '<option value="all">All months (YTD)</option>' + avail.map(i => '<option value="' + i + '">' + M[i] + ' ' + year + (i > COMPLETE_UPTO ? ' (MTD)' : '') + '</option>').join('');
-    const d = $('#selDsm'); d.innerHTML = '<option value="all">All DSMs</option>' + Store.dsmList.map(x => '<option value="' + esc(x) + '">' + esc(x) + '</option>').join('');
+    const d = $('#selDsm'); d.innerHTML = '<option value="all">All Divisions</option>' + Store.dsmList.map(x => '<option value="' + esc(x) + '">' + esc(x) + '</option>').join('');
     refreshZoneFilter(); refreshSrFilter();
   }
   function refreshZoneFilter() {
@@ -888,7 +893,7 @@
   function updateFilterSummary() {
     const f = state.filters;
     const parts = [];
-    parts.push(f.dsm === 'all' ? 'All DSMs' : f.dsm);
+    parts.push(f.dsm === 'all' ? 'All Divisions' : f.dsm);
     parts.push(f.zone === 'all' ? 'All Zones' : f.zone);
     parts.push(f.sr === 'all' ? 'All SRs' : f.sr);
     parts.push(f.month === 'all' ? 'YTD' : M[Number(f.month)] + ' ' + periodInfo().year);
