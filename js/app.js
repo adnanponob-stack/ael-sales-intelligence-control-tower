@@ -19,9 +19,18 @@
   /* ---------------- Context ---------------- */
   function getContext() {
     const f = state.filters;
-    const upto = f.month !== 'all' ? Number(f.month) : COMPLETE_UPTO;   // 8 complete months (excludes current MTD month)
-    const rows = Store.filterRows({ dsm: f.dsm, zone: f.zone, sr: f.sr }).filter(r => r.mi <= upto);
-    return { rows, upto, month: f.month };
+    let rows, upto, labels;
+    if (f.month !== 'all') {
+      const m = Number(f.month);
+      rows = Store.filterRows({ dsm: f.dsm, zone: f.zone, sr: f.sr, month: m });
+      upto = m;
+      labels = [m];
+    } else {
+      upto = COMPLETE_UPTO;   // 8 complete months (excludes current MTD month)
+      rows = Store.filterRows({ dsm: f.dsm, zone: f.zone, sr: f.sr }).filter(r => r.mi <= upto);
+      labels = Array.from({ length: upto + 1 }, (_, i) => i);
+    }
+    return { rows, upto, month: f.month, labels };
   }
 
   function sum(rows, key) { return rows.reduce((s, r) => s + r[key], 0); }
@@ -84,17 +93,20 @@
     const pc = Program.counts();
     const sum_ = buildSummary(ctx, zstats);
     const series = Store.monthly(ctx.rows);
-    const labels = M.slice(0, ctx.upto + 1);
-    const t = labels.map((_, i) => series[i].t), a = labels.map((_, i) => series[i].a);
-    const achS = labels.map((_, i) => series[i].t > 0 ? ((series[i].a / series[i].t) * 100).toFixed(1) : null);
+    const labels = ctx.labels.map(i => M[i]);
+    const idx = ctx.labels;
+    const t = idx.map(i => series[i].t), a = idx.map(i => series[i].a);
+    const achS = idx.map(i => series[i].t > 0 ? ((series[i].a / series[i].t) * 100).toFixed(1) : null);
 
-    // scoreboard (MoM: latest month vs previous month)
+    // scoreboard (MoM: latest month vs previous month, using full scope for previous)
+    const scopeRows = Store.filterRows({ dsm: state.filters.dsm, zone: state.filters.zone, sr: state.filters.sr });
+    const fullSeries = Store.monthly(scopeRows);
     const lastM = ctx.upto, prevM = Math.max(0, lastM - 1);
-    const salesCur = series[lastM].a, salesPrev = series[prevM].a;
+    const salesCur = series[lastM].a, salesPrev = fullSeries[prevM].a;
     const salesChg = salesPrev > 0 ? ((salesCur - salesPrev) / salesPrev) * 100 : null;
     const achCur = series[lastM].t > 0 ? (series[lastM].a / series[lastM].t) * 100 : null;
-    const achPrev = series[prevM].t > 0 ? (series[prevM].a / series[prevM].t) * 100 : null;
-    const gapCur = series[lastM].t - series[lastM].a, gapPrev = series[prevM].t - series[prevM].a;
+    const achPrev = fullSeries[prevM].t > 0 ? (fullSeries[prevM].a / fullSeries[prevM].t) * 100 : null;
+    const gapCur = series[lastM].t - series[lastM].a, gapPrev = fullSeries[prevM].t - fullSeries[prevM].a;
     const activeSrs = Store.aggBy(ctx.rows, r => r.sr).filter(e => e.target > 0).length;
     const sb = { salesCur, salesChg, achCur, achPrev, gapCur, gapPrev, activeSrs, actual, activeCustomers: (Store.meta.activeCustomers || 0), critical: counts.critical };
 
@@ -190,7 +202,7 @@
     const target = sum(ctx.rows, 'target'), actual = sum(ctx.rows, 'actual');
     const ach = target > 0 ? (actual / target) * 100 : 0;
     const series = Store.monthly(ctx.rows);
-    const labels = M.slice(0, ctx.upto + 1);
+    const labels = ctx.labels.map(i => M[i]);
 
     const sr = Store.aggBy(ctx.rows, r => r.sr).map(e => ({ name: e.name, target: e.target, actual: e.actual, ach: Calc.achievement(e.target, e.actual), zone: Store.srZone[e.name] || '—', point: Store.srPoint[e.name] || '—' }));
     const top = sr.slice().sort((a, b) => b.actual - a.actual).slice(0, 12);
@@ -235,9 +247,9 @@
         '<div class="card"><div class="card-title">Lowest Achievement SRs</div><div class="table-wrap">' + srTable(bottom, true) + '</div></div>' +
       '</div>';
 
-    const vol = labels.map((_, i) => series[i].v);
-    const share = labels.map((_, i) => series[i].t > 0 ? +(series[i].a / series[i].t * 100).toFixed(1) : null);
-    Charts.perf('chPerf', labels, labels.map((_, i) => series[i].t), labels.map((_, i) => series[i].a), vol, share);
+    const vol = ctx.labels.map(mi => series[mi].v);
+    const share = ctx.labels.map(mi => series[mi].t > 0 ? +(series[mi].a / series[mi].t * 100).toFixed(1) : null);
+    Charts.perf('chPerf', labels, ctx.labels.map(mi => series[mi].t), ctx.labels.map(mi => series[mi].a), vol, share);
     Charts.hbar('chVar', divZones.map(z => z.name), divZones.map(z => z.variance), v => v >= 0 ? Charts.PAL.pos : Charts.PAL.neg);
   }
 
@@ -353,9 +365,9 @@
     const topCust = REF.customers.slice().sort((a, b) => b.monthlyValue - a.monthlyValue).slice(0, 15);
     const dep = REF.distributors.slice().sort((a, b) => b.dependency - a.dependency).slice(0, 10);
     const cSignals = Signals.all().filter(s => s.category === 'customer');
-    const mLabels = M.slice(0, ctx.upto + 1);
-    const mCustomers = mLabels.map((_, i) => (Store.meta.monthlyCustomers ? Store.meta.monthlyCustomers[i] : 0));
-    const mOfficers = mLabels.map((_, i) => (Store.meta.monthlySalesOfficers ? Store.meta.monthlySalesOfficers[i] : 0));
+    const mLabels = ctx.labels.map(i => M[i]);
+    const mCustomers = ctx.labels.map(mi => (Store.meta.monthlyCustomers ? Store.meta.monthlyCustomers[mi] : 0));
+    const mOfficers = ctx.labels.map(mi => (Store.meta.monthlySalesOfficers ? Store.meta.monthlySalesOfficers[mi] : 0));
 
     $('#content').querySelector('[data-view-panel="customer"]').innerHTML =
       '<div class="section-head"><div><div class="section-title">Customer Intelligence</div><div class="section-desc">Customer, distributor &amp; channel intelligence</div></div></div>' +
@@ -715,8 +727,8 @@
       '<div class="drawer-section"><h4>Monthly Trend</h4><div class="chart-box sm"><canvas id="chSr"></canvas></div></div>' +
       '<div class="drawer-section"><h4>Signals</h4>' + (sigs.length ? sigs.map(s => '<div class="rca-node" data-signal="' + s.id + '"><span class="n-name">' + esc(s.type) + '</span><span class="n-meta">' + s.severityLabel + '</span></div>').join('') : '<div class="muted">None</div>') + '</div>');
     if (e) {
-      const s = e.series;
-      const labels = M.slice(0, ctx.upto + 1);
+      const s = Store.monthly(Store.rows.filter(r => r.sr === sr));
+      const labels = M.slice(0, COMPLETE_UPTO + 1);
       Charts.targetActual('chSr', labels, labels.map((_, i) => s[i].t), labels.map((_, i) => s[i].a));
     }
   }
