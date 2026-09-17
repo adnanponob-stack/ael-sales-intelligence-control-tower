@@ -235,6 +235,16 @@ WHERE isActive = 1 AND strEmployeeName IS NOT NULL
 GROUP BY intTerritoryId
 """
 
+SQL_META = """
+SELECT COUNT(DISTINCT intOutletId) AS ActiveCustomers,
+       COUNT(DISTINCT intActionBy) AS ActiveSalesOfficers,
+       COUNT(DISTINCT intBusinessPartnerId) AS Distributors,
+       COUNT(DISTINCT strBusinessPartnerName) AS DistributorsByName
+FROM rtm.tblOutletDeliveryHeader WITH (NOLOCK)
+WHERE dteDeliveryDate >= '{start}' AND dteDeliveryDate < '{end}'
+  AND intBusinessUnitId = {ael_bu}
+"""
+
 
 def main():
     push = "--push" in sys.argv
@@ -261,6 +271,12 @@ def main():
         if tid and nm and tid not in emp_by_id:
             emp_by_id[tid] = nm
     print("      %d employees mapped" % len(emp_by_id))
+
+    print("[4/5] Fetching live customer / sales-officer / distributor counts ...")
+    h_meta, r_meta = rtm_query(SQL_META.format(start=START_DATE, end=end_date, ael_bu=AEL_BUSINESS_UNIT), api_key)
+    meta_row = rows_to_dicts(h_meta, r_meta)
+    meta_counts = meta_row[0] if meta_row else {}
+    print("      %s" % meta_counts)
 
     if not actual:
         print("!! No live delivery data found — aborting (keep existing data.js).")
@@ -345,6 +361,9 @@ def main():
             "model": TARGET_MODEL,
             "year": int(START_DATE[:4]),
             "months": sorted({r[5] for r in rows}),
+            "activeCustomers": int(num(meta_counts.get("ActiveCustomers"))),
+            "activeSalesOfficers": int(num(meta_counts.get("ActiveSalesOfficers"))),
+            "distributors": int(num(meta_counts.get("Distributors"))),
         },
     }
     js = ("(function(){\nwindow.AEL_DATA = "
@@ -355,7 +374,7 @@ def main():
     with open(data_path, "w", encoding="utf-8") as f:
         f.write(js)
 
-    print("[4/4] Wrote %s" % data_path)
+    print("[5/5] Wrote %s" % data_path)
     if TARGET_MODEL == "memo_count":
         print("      zones=%d  rows=%d  actual=%.0f deliveries  target=%.0f memos" % (
             len(zone_set), len(rows), sum(r[7] for r in rows), sum(r[6] for r in rows)))

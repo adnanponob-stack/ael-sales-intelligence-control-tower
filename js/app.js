@@ -101,7 +101,7 @@
     const achPrev = series[prevM].t > 0 ? (series[prevM].a / series[prevM].t) * 100 : null;
     const gapCur = series[lastM].t - series[lastM].a, gapPrev = series[prevM].t - series[prevM].a;
     const activeSrs = Store.aggBy(ctx.rows, r => r.sr).filter(e => e.target > 0).length;
-    const sb = { salesCur, salesChg, achCur, achPrev, gapCur, gapPrev, activeSrs, actual, activeCustomers: REF.customers.filter(c => c.active).length, critical: counts.critical };
+    const sb = { salesCur, salesChg, achCur, achPrev, gapCur, gapPrev, activeSrs, actual, activeCustomers: (Store.meta.activeCustomers || 0), critical: counts.critical };
 
     const topGaps = zstats.filter(z => z.gap > 0).sort((a, b) => b.gap - a.gap).slice(0, 10);
     const topSignals = Signals.all().filter(s => s.severity === 'critical').slice(0, 5);
@@ -328,8 +328,8 @@
     $('#content').querySelector('[data-view-panel="manpower"]').innerHTML =
       '<div class="section-head"><div><div class="section-title">Manpower Intelligence</div><div class="section-desc">Employee productivity &amp; coverage signals</div></div></div>' +
       '<div class="kpi-grid">' +
-        kpiCard('Total SRs', String(srs.length), 'in scope') +
-        kpiCard('Active SRs', String(active.length), 'with target') +
+        kpiCard('Active Sales Officers', String((Store.meta.activeSalesOfficers || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ','), 'employees selling (live RTM)') +
+        kpiCard('Active Territories', String(srs.length), 'SR points in scope') +
         kpiCard('Avg Productivity', 'BDT ' + FMT.money(avgProd), 'actual per SR') +
         kpiCard('Low Productivity', String(lowProd.length), 'SRs &lt; 60%', null, 'down') +
       '</div>' +
@@ -350,8 +350,9 @@
   /* ---------------- 05 CUSTOMER ---------------- */
   function renderCustomer() {
     const ctx = getContext();
-    const activeC = REF.customers.filter(c => c.active).length;
-    const totalC = REF.customers.length;
+    const activeC = Store.meta.activeCustomers || 0;
+    const activeSO = Store.meta.activeSalesOfficers || 0;
+    const distN = Store.meta.distributors || 0;
     const zoneCust = {};
     REF.customers.forEach(c => { zoneCust[c.zone] = zoneCust[c.zone] || { t: 0, a: 0 }; zoneCust[c.zone].t++; if (c.active) zoneCust[c.zone].a++; });
     const topCust = REF.customers.slice().sort((a, b) => b.monthlyValue - a.monthlyValue).slice(0, 15);
@@ -361,9 +362,9 @@
     $('#content').querySelector('[data-view-panel="customer"]').innerHTML =
       '<div class="section-head"><div><div class="section-title">Customer Intelligence</div><div class="section-desc">Customer, distributor &amp; channel intelligence</div></div></div>' +
       '<div class="kpi-grid">' +
-        kpiCard('Active Customers', String(activeC).replace(/\B(?=(\d{3})+(?!\d))/g, ','), 'of ' + totalC.toLocaleString('en-IN')) +
-        kpiCard('Customer Retention', (totalC ? (activeC / totalC * 100).toFixed(1) + '%' : '—'), 'active ratio') +
-        kpiCard('Distributors', String(REF.distributors.length), 'in network') +
+        kpiCard('Active Customers', String(activeC).replace(/\B(?=(\d{3})+(?!\d))/g, ','), 'outlets served (live RTM)') +
+        kpiCard('Active Sales Officers', String(activeSO).replace(/\B(?=(\d{3})+(?!\d))/g, ','), 'employees selling (live RTM)') +
+        kpiCard('Distributors', String(distN).replace(/\B(?=(\d{3})+(?!\d))/g, ','), 'in network (live RTM)') +
         kpiCard('Customer Signals', String(cSignals.length), 'open', null, 'down') +
       '</div>' +
       '<div class="grid grid-2 mb18">' +
