@@ -9,7 +9,7 @@
 
   const state = {
     view: 'overview',
-    filters: { month: 'all', scope: 'ytd', dsm: 'all', zone: 'all', sr: 'all' },
+    filters: { month: 'all', dsm: 'all', zone: 'all', sr: 'all' },
     mapMetric: 'health',
     searchOpen: false
   };
@@ -19,17 +19,9 @@
   /* ---------------- Context ---------------- */
   function getContext() {
     const f = state.filters;
-    let upto;
-    if (f.month !== 'all') upto = Number(f.month);
-    else if (f.scope === 'ytd') upto = COMPLETE_UPTO;   // 8 complete months (excludes current MTD month)
-    else upto = MTD_MONTH;                               // current month-to-date
-    let rows;
-    if (f.scope === 'mtd') {
-      rows = Store.filterRows({ dsm: f.dsm, zone: f.zone, sr: f.sr, month: upto });
-    } else {
-      rows = Store.filterRows({ dsm: f.dsm, zone: f.zone, sr: f.sr }).filter(r => r.mi <= upto);
-    }
-    return { rows, upto, month: f.month, scope: f.scope };
+    const upto = f.month !== 'all' ? Number(f.month) : COMPLETE_UPTO;   // 8 complete months (excludes current MTD month)
+    const rows = Store.filterRows({ dsm: f.dsm, zone: f.zone, sr: f.sr }).filter(r => r.mi <= upto);
+    return { rows, upto, month: f.month };
   }
 
   function sum(rows, key) { return rows.reduce((s, r) => s + r[key], 0); }
@@ -872,11 +864,9 @@
   }
 
   function populateFilters() {
-    const { year, avail, complete } = periodInfo();
+    const { year, avail } = periodInfo();
     const mSel = $('#selMonth');
     mSel.innerHTML = '<option value="all">All months (YTD)</option>' + avail.map(i => '<option value="' + i + '">' + M[i] + ' ' + year + (i > COMPLETE_UPTO ? ' (MTD)' : '') + '</option>').join('');
-    const ytdOpt = $('#selScope').querySelector('option[value="ytd"]');
-    if (ytdOpt && complete.length) ytdOpt.textContent = 'YTD (' + M[complete[0]] + ' – ' + M[complete[complete.length - 1]] + ' ' + year + ')';
     const d = $('#selDsm'); d.innerHTML = '<option value="all">All DSMs</option>' + Store.dsmList.map(x => '<option value="' + esc(x) + '">' + esc(x) + '</option>').join('');
     refreshZoneFilter(); refreshSrFilter();
   }
@@ -927,11 +917,10 @@
     $$('.nav-item').forEach(n => n.addEventListener('click', () => { renderView(n.getAttribute('data-view')); if (window.innerWidth <= 900) $('#sidebar').classList.remove('open'); }));
 
     $('#selMonth').addEventListener('change', e => { state.filters.month = e.target.value; renderView(state.view); updateFilterSummary(); });
-    $('#selScope').addEventListener('change', e => { state.filters.scope = e.target.value; renderView(state.view); });
     $('#selDsm').addEventListener('change', e => { state.filters.dsm = e.target.value; state.filters.zone = 'all'; state.filters.sr = 'all'; refreshZoneFilter(); refreshSrFilter(); $('#selZone').value = 'all'; $('#selSr').value = 'all'; renderView(state.view); updateFilterSummary(); });
     $('#selZone').addEventListener('change', e => { state.filters.zone = e.target.value; state.filters.sr = 'all'; refreshSrFilter(); $('#selSr').value = 'all'; renderView(state.view); updateFilterSummary(); });
     $('#selSr').addEventListener('change', e => { state.filters.sr = e.target.value; renderView(state.view); updateFilterSummary(); });
-    $('#resetFilters').addEventListener('click', () => { state.filters = { month: 'all', scope: 'ytd', dsm: 'all', zone: 'all', sr: 'all' }; $('#selMonth').value = 'all'; $('#selScope').value = 'ytd'; $('#selDsm').value = 'all'; $('#selZone').value = 'all'; $('#selSr').value = 'all'; refreshZoneFilter(); refreshSrFilter(); updateFilterSummary(); renderView(state.view); });
+    $('#resetFilters').addEventListener('click', () => { state.filters = { month: 'all', dsm: 'all', zone: 'all', sr: 'all' }; $('#selMonth').value = 'all'; $('#selDsm').value = 'all'; $('#selZone').value = 'all'; $('#selSr').value = 'all'; refreshZoneFilter(); refreshSrFilter(); updateFilterSummary(); renderView(state.view); });
 
     $('#drawerClose').addEventListener('click', closeDrawer);
     $('#drawerOverlay').addEventListener('click', closeDrawer);
