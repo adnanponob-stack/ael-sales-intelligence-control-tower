@@ -518,6 +518,13 @@
     const improve = classified.filter(p => p.tier === 'B');
     const focusValue = focus.reduce((s, p) => s + p.amt, 0);
 
+    // SKU growth / degrowth
+    const growth = (Store.meta.skuGrowth || []).slice().sort((a, b) => b.growth - a.growth);
+    const growing = growth.slice(0, 8);
+    const declining = growth.slice(-8).reverse();
+    const zoneGrowth = (Store.meta.skuZoneGrowth || []).filter(z => z.growSku || z.declineSku).slice(0, 12);
+    const fmtG = pct => pct == null ? '—' : ((Math.abs(pct) > 999 ? '999%+' : Math.abs(pct).toFixed(0) + '%'));
+
     $('#content').querySelector('[data-view-panel="product"]').innerHTML =
       '<div class="section-head"><div><div class="section-title">Product Intelligence</div><div class="section-desc">SKU-wise sales, prioritization &amp; focus recommendation</div></div></div>' +
       '<div class="kpi-grid">' +
@@ -531,8 +538,15 @@
           '<div class="drawer-section"><h4>Focus — protect &amp; grow (A)</h4>' + focus.map(p => '<div class="detail-row"><span class="lbl">' + esc(p.sku) + ' <span class="muted">(' + p.share.toFixed(0) + '%)</span></span><span class="val mono">' + FMT.money(p.amt) + '</span></div>').join('') + '</div>' +
           '<div class="drawer-section"><h4>Improve — grow (B)</h4>' + improve.map(p => '<div class="detail-row"><span class="lbl">' + esc(p.sku) + ' <span class="muted">(' + p.share.toFixed(1) + '%)</span></span><span class="val mono">' + FMT.money(p.amt) + '</span></div>').join('') + '</div>' +
         '</div>' +
-        '<div class="card"><div class="card-title">Top SKUs by Volume</div><div class="card-sub">Units sold</div><div class="chart-box md"><canvas id="chSkuVol"></canvas></div></div>' +
+        '<div class="card"><div class="card-title">SKU Growth / Degrowth</div><div class="card-sub">Recent 3 months vs previous 3 months</div>' +
+          '<div class="drawer-section"><h4>Growing ↑</h4>' + (growing.length ? growing.map(g => '<div class="detail-row"><span class="lbl">' + esc(g.sku) + '</span><span class="val mono h-healthy">+' + fmtG(g.growth) + '</span></div>').join('') : '<div class="muted">None</div>') + '</div>' +
+          '<div class="drawer-section"><h4>Declining ↓</h4>' + (declining.length ? declining.map(g => '<div class="detail-row"><span class="lbl">' + esc(g.sku) + '</span><span class="val mono h-critical">−' + fmtG(g.growth) + '</span></div>').join('') : '<div class="muted">None</div>') + '</div>' +
+        '</div>' +
       '</div>' +
+      '<div class="card mb18"><div class="card-title">Area-wise SKU Movement</div><div class="card-sub">Top growing &amp; declining SKU per zone (recent vs previous 3 months)</div>' +
+      '<div class="table-wrap"><table class="tbl"><thead><tr><th>Zone</th><th>Growing SKU</th><th class="num">Growth</th><th>Declining SKU</th><th class="num">Decline</th></tr></thead><tbody>' +
+      (zoneGrowth.length ? zoneGrowth.map(z => '<tr class="row"><td class="clickable" data-zone="' + esc(z.zone) + '">' + esc(z.zone) + '</td><td>' + (z.growSku ? esc(z.growSku) : '<span class="muted">—</span>') + '</td><td class="num mono h-healthy">' + (z.growPct != null ? '+' + fmtG(z.growPct) : '—') + '</td><td>' + (z.declineSku ? esc(z.declineSku) : '<span class="muted">—</span>') + '</td><td class="num mono h-critical">' + (z.declinePct != null ? '−' + fmtG(z.declinePct) : '—') + '</td></tr>').join('') : '<tr><td colspan="5" class="empty">No data</td></tr>') +
+      '</tbody></table></div></div>' +
       '<div class="card mb18"><div class="card-title">SKU Sales Contribution (Pareto)</div><div class="card-sub">Top SKUs by value with cumulative %</div><div class="chart-box md"><canvas id="chSkuPareto"></canvas></div></div>' +
       '<div class="card"><div class="card-title">SKU Performance &amp; Recommendation</div><div class="card-sub">ABC priority — Focus (A) drives 80% of value, Improve (B) is the growth pool</div>' +
       '<div class="table-wrap"><table class="tbl"><thead><tr><th>#</th><th>SKU</th><th class="num">Value</th><th class="num">Units</th><th class="num">Unit Price</th><th class="num">Share</th><th>Priority</th><th>Recommendation</th></tr></thead><tbody>' +
@@ -540,7 +554,6 @@
       '</tbody></table></div></div>';
 
     Charts.pareto('chSkuPareto', top15.map(p => p.sku), top15.map(p => p.amt));
-    Charts.hbar('chSkuVol', topVol.map(p => p.sku), topVol.map(p => p.qty), () => Charts.PAL.darkblue, 'Units');
   }
 
   /* ---------------- 08 SIGNALS ---------------- */

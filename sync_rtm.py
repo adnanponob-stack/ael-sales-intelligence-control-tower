@@ -20,6 +20,7 @@ import json
 import re
 import sys
 import time
+import datetime as dt
 import urllib.request
 
 # ============================================================================
@@ -269,6 +270,21 @@ GROUP BY r.strProductName
 ORDER BY Amt DESC
 """
 
+# SKU x Zone growth (recent 3 months vs previous 3 months)
+SQL_SKU_ZONE_GROWTH = """
+SELECT COALESCE(s.NL7, 'National') AS Zone,
+       r.strProductName AS SKU,
+       SUM(CASE WHEN h.dteDeliveryDate >= '{recent}' THEN r.numDeliveryAmount ELSE 0 END) AS Recent,
+       SUM(CASE WHEN h.dteDeliveryDate >= '{prev}' AND h.dteDeliveryDate < '{recent}' THEN r.numDeliveryAmount ELSE 0 END) AS Prev
+FROM rtm.tblOutletDeliveryRow r WITH (NOLOCK)
+JOIN rtm.tblOutletDeliveryHeader h WITH (NOLOCK) ON r.intDeliveryId = h.intDeliveryId
+LEFT JOIN rtm.tblTerritoryInfoSetup s WITH (NOLOCK) ON s.L9 = h.intTerritoryid AND s.isActive = 1 AND s.intLevelId = 9 AND s.L1 = {ael_l1}
+WHERE h.dteDeliveryDate >= '{prev}' AND h.dteDeliveryDate < '{end}'
+  AND h.intBusinessUnitId = {ael_bu}
+  AND ABS(CAST(HASHBYTES('MD5', ISNULL(r.strProductName, '')) AS INT)) % {buckets} = {bucket}
+GROUP BY s.NL7, r.strProductName
+"""
+
 
 def main():
     push = "--push" in sys.argv
@@ -318,12 +334,61 @@ def main():
             monthly_deliveries[mi_] = int(num(m.get("Deliveries")))
     print("      customers by month: %s" % monthly_customers)
 
-    print("[6/7] Fetching SKU-wise performance ...")
+    print("[6/8] Fetching SKU-wise performance ...")
     h_sku, r_sku = rtm_query(SQL_PRODUCTS.format(start=START_DATE, end=end_date, ael_bu=AEL_BUSINESS_UNIT), api_key, limit=200)
     products = []
     for p in rows_to_dicts(h_sku, r_sku):
         products.append({"sku": (p.get("SKU") or "").strip(), "qty": round(num(p.get("Qty"))), "amt": round(num(p.get("Amt")))})
     print("      %d SKUs" % len(products))
+
+    # ---- SKU x Zone growth (recent 3 months vs previous 3 months) ----
+    _cur = dt.date.today().replace(day=1)
+    def _months_ago(d, n):
+        m = d.month - n; y = d.year
+        while m <= 0:
+            m += 12; y -= 1
+        return dt.date(y, m, 1)
+    growth_end = _cur.isoformat()
+    growth_recent = _months_ago(_cur, 3).isoformat()
+    growth_prev = _months_ago(_cur, 6).isoformat()
+    print("[7/8] Fetching SKU x Zone growth (%s vs %s) ..." % (growth_recent, growth_prev))
+    sku_zone_rows = paged_query(SQL_SKU_ZONE_GROWTH, api_key, recent=growth_recent, prev=growth_prev, end=growth_end, ael_l1=AEL_HIERARCHY_L1, ael_bu=AEL_BUSINESS_UNIT)
+    # national SKU growth
+    sku_growth_agg = {}
+    for r in sku_zone_rows:
+        sku = (r.get("SKU") or "").strip()
+        if not sku:
+            continue
+        d = sku_growth_agg.setdefault(sku, [0.0, 0.0])
+        d[0] += num(r.get("Recent")); d[1] += num(r.get("Prev"))
+    sku_growth = []
+    for sku, (rec, prv) in sku_growth_agg.items():
+        g = ((rec - prv) / prv * 100) if prv > 0 else (100.0 if rec > 0 else 0.0)
+        sku_growth.append({"sku": sku, "recent": round(rec), "prev": round(prv), "growth": round(g, 1)})
+    sku_growth.sort(key=lambda x: -x["growth"])
+    # per-zone top growth / top decline SKU
+    zone_growth_agg = {}
+    for r in sku_zone_rows:
+        z = (r.get("Zone") or "").strip() or "National"
+        sku = (r.get("SKU") or "").strip()
+        rec = num(r.get("Recent")); prv = num(r.get("Prev"))
+        g = ((rec - prv) / prv * 100) if prv > 0 else (100.0 if rec > 0 else 0.0)
+        if not sku:
+            continue
+        d = zone_growth_agg.setdefault(z, [])
+        d.append({"sku": sku, "growth": round(g, 1), "recent": round(rec), "prev": round(prv)})
+    sku_zone_growth = []
+    for z, items in zone_growth_agg.items():
+        items.sort(key=lambda x: -x["growth"])
+        grow = items[0] if items and items[0]["growth"] > 0 else None
+        decl = items[-1] if items and items[-1]["growth"] < 0 else None
+        sku_zone_growth.append({
+            "zone": z,
+            "growSku": grow["sku"] if grow else None, "growPct": grow["growth"] if grow else None,
+            "declineSku": decl["sku"] if decl else None, "declinePct": decl["growth"] if decl else None,
+        })
+    sku_zone_growth.sort(key=lambda x: (x["growPct"] is None, -(x["growPct"] or 0)))
+    print("      %d SKU growth rows, %d zones" % (len(sku_growth), len(sku_zone_growth)))
 
     if not actual:
         print("!! No live delivery data found — aborting (keep existing data.js).")
@@ -455,6 +520,8 @@ def main():
             "monthlyDistributors": monthly_distributors,
             "monthlyDeliveries": monthly_deliveries,
             "products": products,
+            "skuGrowth": sku_growth,
+            "skuZoneGrowth": sku_zone_growth,
         },
     }
     js = ("(function(){\nwindow.AEL_DATA = "
@@ -465,7 +532,7 @@ def main():
     with open(data_path, "w", encoding="utf-8") as f:
         f.write(js)
 
-    print("[7/7] Wrote %s" % data_path)
+    print("[8/8] Wrote %s" % data_path)
     if TARGET_MODEL == "memo_count":
         print("      zones=%d  rows=%d  actual=%.0f deliveries  target=%.0f memos" % (
             len(zone_set), len(rows), sum(r[7] for r in rows), sum(r[6] for r in rows)))
