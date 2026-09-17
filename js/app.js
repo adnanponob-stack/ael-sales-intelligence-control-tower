@@ -66,13 +66,15 @@
     const counts = Signals.counts();
     const pc = Program.counts();
     const cat = counts.byCategory;
+    const compThreats = Store.zoneList.filter(z => { const c = REF.compZone[z]; if (!c) return false; const r = competitorRisk(c); return r === 'critical' || r === 'high'; }).length;
     return {
-      ach, target, actual, gap, below, worst, counts, pc, cat,
+      ach, target, actual, gap, below, worst, counts, pc, cat, compThreats,
       html: function () {
         const p = [];
         p.push('National achievement is <strong>' + ach.toFixed(1) + '%</strong>, with a sales gap of <strong>BDT ' + FMT.money(gap) + '</strong> (' + (target > 0 ? ((gap / target) * 100).toFixed(1) : 0) + '% of target).');
         p.push('<strong>' + below + '</strong> zones are below the ' + CFG.achievement.weak + '% performance threshold.');
         p.push('The largest contribution to the gap comes from <strong>' + esc(worst ? worst.name : '—') + '</strong> (BDT ' + FMT.money(worst ? worst.gap : 0) + ').');
+        p.push('<strong>' + compThreats + '</strong> zones face high/critical competitive pressure — see Competitive Intelligence for mitigation.');
         p.push('<strong>' + counts.critical + '</strong> critical signals require investigation; <strong>' + counts.active + '</strong> active signals overall.');
         p.push('<strong>' + pc.researchOpen + '</strong> research cases are open and <strong>' + pc.actionsOverdue + '</strong> management actions are overdue.');
         const tags = [];
@@ -181,7 +183,7 @@
 
   /* ---------------- Map helpers ---------------- */
   function mapViewToggle() {
-    const opts = [['health', 'Signal Health'], ['achievement', 'Achievement'], ['gap', 'Sales Gap'], ['signals', 'Critical Signals']];
+    const opts = [['health', 'Signal Health'], ['achievement', 'Achievement'], ['gap', 'Sales Gap'], ['signals', 'Critical Signals'], ['competitor', 'Competitor Risk']];
     return opts.map(o => '<button class="pill ' + (state.mapMetric === o[0] ? 'pill-info' : 'pill-gray') + '" data-mapmetric="' + o[0] + '" style="border:none">' + o[1] + '</button>').join(' ');
   }
 
@@ -391,23 +393,69 @@
   }
 
   /* ---------------- 06 COMPETITOR ---------------- */
+  function competitorScore(c) {
+    let s = 0;
+    if (c.priceGap < -6) s += 3; else if (c.priceGap < -3) s += 2; else if (c.priceGap < 0) s += 1;
+    if (c.availability > 0.85) s += 3; else if (c.availability > 0.7) s += 2; else if (c.availability > 0.5) s += 1;
+    if (c.distribution > 0.85) s += 2; else if (c.distribution > 0.7) s += 1;
+    if (c.promo) s += 1;
+    return s;
+  }
+  function competitorRisk(c) { const s = competitorScore(c); return s >= 7 ? 'critical' : s >= 5 ? 'high' : s >= 3 ? 'medium' : 'low'; }
+  function riskLabel(l) { return { low: 'Low', medium: 'Medium', high: 'High', critical: 'Critical' }[l] || l; }
+  function riskColor(l) { return { low: Charts.PAL.pos, medium: Charts.PAL.warn, high: Charts.PAL.neg, critical: Charts.PAL.crit }[l] || Charts.PAL.slate; }
+  function riskPill(l) { return '<span class="pill ' + (l === 'critical' ? 'pill-crit' : l === 'high' ? 'pill-neg' : l === 'medium' ? 'pill-warn' : 'pill-pos') + '">' + riskLabel(l) + '</span>'; }
+  function mitigation(c) {
+    const a = [];
+    if (c.priceGap < -3) a.push('Price/promo response');
+    if (c.availability > 0.8) a.push('Visibility & stock drive');
+    if (c.distribution > 0.8) a.push('Retail coverage expansion');
+    if (c.promo) a.push('Counter-promotion');
+    return a.length ? a.join(' · ') : 'Monitor';
+  }
+
   function renderCompetitor() {
-    const zones = Store.zoneList.slice(0, 10);
-    const rows = zones.map(z => {
-      const c = REF.compZone[z];
-      return { zone: z, priceGap: c.priceGap, availability: c.availability, distribution: c.distribution, pressure: (c.priceGap < 0 ? 1 : 0) + (c.availability > .7 ? 1 : 0) + (c.distribution > .7 ? 1 : 0) };
-    });
+    const comp = Store.zoneList.map(z => {
+      const c = REF.compZone[z] || { priceGap: 0, availability: 0, distribution: 0, promo: false };
+      return { zone: z, priceGap: c.priceGap, availability: c.availability, distribution: c.distribution, promo: c.promo, score: competitorScore(c), risk: competitorRisk(c) };
+    }).sort((a, b) => b.score - a.score || b.priceGap - a.priceGap);
+    const critical = comp.filter(x => x.risk === 'critical');
+    const high = comp.filter(x => x.risk === 'high');
+    const avgGap = comp.reduce((s, x) => s + x.priceGap, 0) / (comp.length || 1);
+    const highAvail = comp.filter(x => x.availability > 0.8).length;
     const cSignals = Signals.all().filter(s => s.category === 'competitor');
+    const threats = comp.filter(x => x.risk === 'critical' || x.risk === 'high').slice(0, 8);
 
     $('#content').querySelector('[data-view-panel="competitor"]').innerHTML =
-      '<div class="section-head"><div><div class="section-title">Competitor Intelligence</div><div class="section-desc">Price, availability, distribution &amp; pressure</div></div></div>' +
-      '<div class="card mb18"><div class="card-title">Competitive Comparison Matrix</div><div class="card-sub">Sample zones (pressure derived from price gap, availability &amp; distribution)</div>' +
-      '<div class="table-wrap"><table class="tbl"><thead><tr><th>Zone</th><th class="num">AEL Price Gap</th><th class="num">Competitor Availability</th><th class="num">Competitor Distribution</th><th>Pressure</th></tr></thead><tbody>' +
-      rows.map(r => '<tr class="row"><td class="clickable" data-zone="' + esc(r.zone) + '">' + esc(r.zone) + '</td>' +
+      '<div class="section-head"><div><div class="section-title">Competitive Intelligence</div><div class="section-desc">Competitor pressure, risk scoring &amp; mitigation</div></div></div>' +
+      '<div class="kpi-grid">' +
+        kpiCard('Critical Risk Zones', String(critical.length), 'severe competitor threat', null, 'down') +
+        kpiCard('High Risk Zones', String(high.length), 'elevated competitor pressure', null, 'down') +
+        kpiCard('Avg Price Gap', (avgGap >= 0 ? '+' : '') + avgGap.toFixed(1) + '%', 'AEL vs competitor', null, avgGap < 0 ? 'down' : 'up') +
+        kpiCard('High Competitor Availability', String(highAvail), 'zones > 80% availability', null, 'down') +
+      '</div>' +
+      '<div class="grid grid-2 mb18">' +
+        '<div class="card"><div class="card-title">Top Competitive Threats</div><div class="card-sub">High / critical zones &amp; required action</div>' +
+          '<div class="table-wrap"><table class="tbl"><thead><tr><th>Zone</th><th>Price Gap</th><th class="num">Avail</th><th>Risk</th><th>Mitigation</th></tr></thead><tbody>' +
+          (threats.length ? threats.map(t => '<tr class="row"><td class="clickable" data-zone="' + esc(t.zone) + '">' + esc(t.zone) + '</td><td class="mono ' + (t.priceGap < 0 ? 'h-critical' : 'h-healthy') + '">' + (t.priceGap >= 0 ? '+' : '') + t.priceGap.toFixed(1) + '%</td><td class="num mono">' + (t.availability * 100).toFixed(0) + '%</td><td>' + riskPill(t.risk) + '</td><td style="white-space:normal;max-width:220px">' + esc(mitigation(t)) + '</td></tr>').join('') : '<tr><td colspan="5" class="empty">No high-risk zones</td></tr>') +
+          '</tbody></table></div></div>' +
+        '<div class="card"><div class="card-title">Risk Mitigation Playbook</div><div class="card-sub">Standard response by threat signal</div>' +
+          '<div class="detail-row"><span class="lbl">Price undercut (&lt; −3%)</span><span class="val">Targeted promo / trade offer</span></div>' +
+          '<div class="detail-row"><span class="lbl">Availability &gt; 80%</span><span class="val">Distributor stock &amp; route coverage</span></div>' +
+          '<div class="detail-row"><span class="lbl">Distribution &gt; 80%</span><span class="val">Retail coverage expansion</span></div>' +
+          '<div class="detail-row"><span class="lbl">Competitor promotion</span><span class="val">Counter-activation</span></div>' +
+          '<div class="mt-note" style="margin-top:12px">Risk score = price gap + availability + distribution + promo pressure. Evidence is seeded; link live audits to make it real-time.</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card mb18"><div class="card-title">Competitive Risk by Zone</div><div class="card-sub">All zones ranked by competitor pressure</div>' +
+      '<div class="table-wrap"><table class="tbl"><thead><tr><th>Zone</th><th class="num">Price Gap</th><th class="num">Availability</th><th class="num">Distribution</th><th>Promo</th><th class="num">Score</th><th>Risk</th></tr></thead><tbody>' +
+      comp.map(r => '<tr class="row"><td class="clickable" data-zone="' + esc(r.zone) + '">' + esc(r.zone) + '</td>' +
         '<td class="num mono ' + (r.priceGap < 0 ? 'h-critical' : 'h-healthy') + '">' + (r.priceGap >= 0 ? '+' : '') + r.priceGap.toFixed(1) + '%</td>' +
         '<td class="num mono">' + (r.availability * 100).toFixed(0) + '%</td>' +
         '<td class="num mono">' + (r.distribution * 100).toFixed(0) + '%</td>' +
-        '<td>' + (r.pressure >= 3 ? '<span class="pill pill-crit">High</span>' : r.pressure === 2 ? '<span class="pill pill-neg">Medium</span>' : '<span class="pill pill-pos">Low</span>') + '</td></tr>').join('') +
+        '<td>' + (r.promo ? '<span class="pill pill-warn">Yes</span>' : '<span class="pill pill-gray">No</span>') + '</td>' +
+        '<td class="num mono">' + r.score + '/9</td>' +
+        '<td>' + riskPill(r.risk) + '</td></tr>').join('') +
       '</tbody></table></div></div>' +
       '<div class="card"><div class="card-title">Competitor Signals</div>' + signalList(cSignals.slice(0, 8)) + '</div>';
   }

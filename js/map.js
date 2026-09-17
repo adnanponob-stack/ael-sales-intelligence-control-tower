@@ -47,6 +47,16 @@ const ZoneMap = (function () {
       const n = st.sigCount || 0;
       if (n === 0) return '#16845B'; if (n <= 2) return '#D99A00';
       if (n <= 4) return '#E07B2C'; return '#C83E4D';
+    },
+    competitor: (st, z) => {
+      const c = (typeof REF !== 'undefined' && REF.compZone && REF.compZone[z]) ? REF.compZone[z] : null;
+      if (!c) return '#C9D2DC';
+      let s = 0;
+      if (c.priceGap < -6) s += 3; else if (c.priceGap < -3) s += 2; else if (c.priceGap < 0) s += 1;
+      if (c.availability > 0.85) s += 3; else if (c.availability > 0.7) s += 2; else if (c.availability > 0.5) s += 1;
+      if (c.distribution > 0.85) s += 2; else if (c.distribution > 0.7) s += 1;
+      if (c.promo) s += 1;
+      if (s >= 7) return '#C83E4D'; if (s >= 5) return '#E07B2C'; if (s >= 3) return '#D99A00'; return '#16845B';
     }
   };
 
@@ -75,12 +85,15 @@ const ZoneMap = (function () {
 
   function tipHtml(z, st, metric) {
     const h = st.health;
-    const metricLabel = { health: 'Signal Health', achievement: 'Achievement', gap: 'Sales Gap', signals: 'Critical Signals' }[metric] || 'Health';
+    const metricLabel = { health: 'Signal Health', achievement: 'Achievement', gap: 'Sales Gap', signals: 'Critical Signals', competitor: 'Competitor Risk' }[metric] || 'Health';
     let mv = '—';
     if (metric === 'achievement') mv = h.subscores.achievement != null ? h.subscores.achievement.toFixed(0) + '%' : '—';
     else if (metric === 'gap') mv = 'BDT ' + FMT.money((st.gapLakh || 0) * 100000);
     else if (metric === 'signals') mv = (st.sigCount || 0) + ' critical';
-    else mv = Health.label(h.band);
+    else if (metric === 'competitor') {
+      const c = (typeof REF !== 'undefined' && REF.compZone && REF.compZone[z]) ? REF.compZone[z] : null;
+      mv = c ? (c.priceGap >= 0 ? '+' : '') + c.priceGap.toFixed(1) + '% price gap' : 'No data';
+    } else mv = Health.label(h.band);
     return '<div style="font-family:Inter,sans-serif;min-width:160px">' +
       '<div style="font-weight:700;margin-bottom:4px">' + z + '</div>' +
       '<div>Health: <b style="color:' + (Charts.PAL.health[h.band] || '#999') + '">' + Health.label(h.band) + '</b></div>' +
@@ -90,7 +103,9 @@ const ZoneMap = (function () {
   }
 
   function render(containerId, metric, stats, onZoneClick) {
-    if (!map || currentContainer !== containerId) build(containerId);
+    const el = document.getElementById(containerId);
+    const needBuild = !map || currentContainer !== containerId || !el || !el.contains(map.getContainer());
+    if (needBuild) build(containerId);
     onClickCb = onZoneClick;
     if (!map || !geoLayer || !window.BD_GEO) return;
     geoLayer.clearLayers();
@@ -113,7 +128,7 @@ const ZoneMap = (function () {
         const zones = dz[f.properties.d];
         if (!zones) return { color: '#ffffff', weight: 0.6, fillColor: '#C9D2DC', fillOpacity: 0.55 };
         const b = best(zones);
-        return { color: '#ffffff', weight: 0.9, fillColor: colorFn(stats[b]), fillOpacity: 0.85 };
+        return { color: '#ffffff', weight: 0.9, fillColor: colorFn(stats[b], b), fillOpacity: 0.85 };
       },
       onEachFeature: (f, layer) => {
         const zones = dz[f.properties.d];
