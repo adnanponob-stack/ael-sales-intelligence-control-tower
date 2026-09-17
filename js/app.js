@@ -67,6 +67,11 @@
     const pc = Program.counts();
     const cat = counts.byCategory;
     const compThreats = Store.zoneList.filter(z => { const c = REF.compZone[z]; if (!c) return false; const r = competitorRisk(c); return r === 'critical' || r === 'high'; }).length;
+    const prods = (Store.meta.products || []).slice().sort((a, b) => b.amt - a.amt);
+    const prodTotal = prods.reduce((s, p) => s + p.amt, 0);
+    let prodCum = 0, focusSkus = 0;
+    prods.forEach(p => { prodCum += p.amt; if (prodTotal > 0 && prodCum <= prodTotal * 0.8) focusSkus++; });
+    const topSku = prods[0];
     return {
       ach, target, actual, gap, below, worst, counts, pc, cat, compThreats,
       html: function () {
@@ -74,6 +79,7 @@
         p.push('National achievement is <strong>' + ach.toFixed(1) + '%</strong>, with a sales gap of <strong>BDT ' + FMT.money(gap) + '</strong> (' + (target > 0 ? ((gap / target) * 100).toFixed(1) : 0) + '% of target).');
         p.push('<strong>' + below + '</strong> zones are below the ' + CFG.achievement.weak + '% performance threshold.');
         p.push('The largest contribution to the gap comes from <strong>' + esc(worst ? worst.name : '—') + '</strong> (BDT ' + FMT.money(worst ? worst.gap : 0) + ').');
+        p.push('Top SKU is <strong>' + esc(topSku ? topSku.sku : '—') + '</strong> (' + (prodTotal > 0 ? (topSku ? (topSku.amt / prodTotal * 100).toFixed(0) : 0) : 0) + '% of value); <strong>' + focusSkus + '</strong> SKUs drive 80% of value.');
         p.push('<strong>' + compThreats + '</strong> zones face high/critical competitive pressure — see Competitive Intelligence for mitigation.');
         p.push('<strong>' + counts.critical + '</strong> critical signals require investigation; <strong>' + counts.active + '</strong> active signals overall.');
         p.push('<strong>' + pc.researchOpen + '</strong> research cases are open and <strong>' + pc.actionsOverdue + '</strong> management actions are overdue.');
@@ -114,6 +120,7 @@
 
     const topGaps = zstats.filter(z => z.gap > 0).sort((a, b) => b.gap - a.gap).slice(0, 10);
     const topSignals = Signals.all().filter(s => s.severity === 'critical').slice(0, 5);
+    const topSkus = (Store.meta.products || []).slice().sort((a, b) => b.amt - a.amt).slice(0, 6);
 
     const catColors = { performance: Charts.PAL.navy, manpower: Charts.PAL.darkblue, customer: Charts.PAL.info, competitor: Charts.PAL.warn, market: Charts.PAL.slate };
     const catLabels = Object.keys(counts.byCategory).filter(k => counts.byCategory[k]);
@@ -142,9 +149,12 @@
         '<div class="map-wrap"><div id="mapBox" class="map-box"></div><div class="map-side">' + mapLegend() + '<div class="mt-note">Click a zone to open its intelligence drawer. Schematic map — approximate geographic placement.</div></div></div>' +
       '</div>' +
 
-      '<div class="grid grid-2">' +
+      '<div class="grid grid-3">' +
         '<div class="card"><div class="card-title">Sales Gap Decomposition</div><div class="card-sub">Top zones driving the national gap</div><div class="chart-box md"><canvas id="chGap"></canvas></div></div>' +
         '<div class="card"><div class="card-title">Signal Categories</div><div class="card-sub">Distribution by intelligence category</div><div class="chart-box md"><canvas id="chCat"></canvas></div></div>' +
+        '<div class="card"><div class="card-title">Top SKUs by Value</div><div class="card-sub">Core products driving revenue</div>' +
+          (topSkus.length ? topSkus.map(p => '<div class="detail-row"><span class="lbl">' + esc(p.sku) + '</span><span class="val mono">' + FMT.money(p.amt) + '</span></div>').join('') : '<div class="empty">No SKU data</div>') +
+        '</div>' +
       '</div>';
 
     Charts.trend('chTrend', labels, t, a, achS);
@@ -492,21 +502,41 @@
     const top15 = products.slice(0, 15);
     const topVol = products.slice().sort((a, b) => b.qty - a.qty).slice(0, 10);
 
+    // ABC classification: Focus (A) / Improve (B) / Monitor (C)
+    let cum = 0;
+    const classified = products.map(p => {
+      cum += p.amt;
+      const cumPct = totalAmt > 0 ? (cum / totalAmt * 100) : 0;
+      const share = totalAmt > 0 ? (p.amt / totalAmt * 100) : 0;
+      const price = p.qty > 0 ? (p.amt / p.qty) : 0;
+      let tier = 'C', label = 'Monitor', pill = 'pill-gray', rec = 'Monitor — consider rationalization';
+      if (cumPct <= 80) { tier = 'A'; label = 'Focus'; pill = 'pill-pos'; rec = price > 100 ? 'Star — protect margin & availability' : 'Volume anchor — secure supply chain'; }
+      else if (cumPct <= 95) { tier = 'B'; label = 'Improve'; pill = 'pill-warn'; rec = 'Improve — push distribution & visibility'; }
+      return Object.assign({}, p, { tier, label, pill, rec, share, price });
+    });
+    const focus = classified.filter(p => p.tier === 'A');
+    const improve = classified.filter(p => p.tier === 'B');
+    const focusValue = focus.reduce((s, p) => s + p.amt, 0);
+
     $('#content').querySelector('[data-view-panel="product"]').innerHTML =
-      '<div class="section-head"><div><div class="section-title">Product Intelligence</div><div class="section-desc">SKU-wise sales &amp; contribution (live RTM)</div></div></div>' +
+      '<div class="section-head"><div><div class="section-title">Product Intelligence</div><div class="section-desc">SKU-wise sales, prioritization &amp; focus recommendation</div></div></div>' +
       '<div class="kpi-grid">' +
         kpiCard('Total SKUs', String(products.length), 'active products') +
-        kpiCard('Top SKU', top ? esc(top.sku) : '—', 'by value') +
-        kpiCard('Top SKU Share', topShare.toFixed(1) + '%', 'of total value') +
-        kpiCard('Total Volume', FMT.money(totalQty), 'units sold') +
+        kpiCard('Top SKU', top ? esc(top.sku) : '—', topShare.toFixed(1) + '% of value') +
+        kpiCard('Focus SKUs', String(focus.length), FMT.money(focusValue) + ' · ' + (totalAmt > 0 ? (focusValue / totalAmt * 100).toFixed(0) + '% of value' : '') ) +
+        kpiCard('Improve SKUs', String(improve.length), 'growth opportunity') +
       '</div>' +
       '<div class="grid grid-2 mb18">' +
-        '<div class="card"><div class="card-title">SKU Sales Contribution (Pareto)</div><div class="card-sub">Top SKUs by value with cumulative %</div><div class="chart-box md"><canvas id="chSkuPareto"></canvas></div></div>' +
+        '<div class="card"><div class="card-title">SKU Prioritization</div><div class="card-sub">What to focus vs what to improve</div>' +
+          '<div class="drawer-section"><h4>Focus — protect &amp; grow (A)</h4>' + focus.map(p => '<div class="detail-row"><span class="lbl">' + esc(p.sku) + ' <span class="muted">(' + p.share.toFixed(0) + '%)</span></span><span class="val mono">' + FMT.money(p.amt) + '</span></div>').join('') + '</div>' +
+          '<div class="drawer-section"><h4>Improve — grow (B)</h4>' + improve.map(p => '<div class="detail-row"><span class="lbl">' + esc(p.sku) + ' <span class="muted">(' + p.share.toFixed(1) + '%)</span></span><span class="val mono">' + FMT.money(p.amt) + '</span></div>').join('') + '</div>' +
+        '</div>' +
         '<div class="card"><div class="card-title">Top SKUs by Volume</div><div class="card-sub">Units sold</div><div class="chart-box md"><canvas id="chSkuVol"></canvas></div></div>' +
       '</div>' +
-      '<div class="card"><div class="card-title">SKU Performance</div><div class="card-sub">All products ranked by value</div>' +
-      '<div class="table-wrap"><table class="tbl"><thead><tr><th>#</th><th>SKU</th><th class="num">Value (BDT)</th><th class="num">Units</th><th class="num">Share</th></tr></thead><tbody>' +
-      (products.length ? products.map((p, i) => '<tr class="row"><td class="muted">' + (i + 1) + '</td><td>' + esc(p.sku) + '</td><td class="num mono">' + FMT.moneyFull(p.amt) + '</td><td class="num mono">' + p.qty.toLocaleString('en-IN') + '</td><td class="num mono">' + (totalAmt > 0 ? (p.amt / totalAmt * 100).toFixed(1) + '%' : '—') + '</td></tr>').join('') : '<tr><td colspan="5" class="empty">No SKU data</td></tr>') +
+      '<div class="card mb18"><div class="card-title">SKU Sales Contribution (Pareto)</div><div class="card-sub">Top SKUs by value with cumulative %</div><div class="chart-box md"><canvas id="chSkuPareto"></canvas></div></div>' +
+      '<div class="card"><div class="card-title">SKU Performance &amp; Recommendation</div><div class="card-sub">ABC priority — Focus (A) drives 80% of value, Improve (B) is the growth pool</div>' +
+      '<div class="table-wrap"><table class="tbl"><thead><tr><th>#</th><th>SKU</th><th class="num">Value</th><th class="num">Units</th><th class="num">Unit Price</th><th class="num">Share</th><th>Priority</th><th>Recommendation</th></tr></thead><tbody>' +
+      (classified.length ? classified.map((p, i) => '<tr class="row"><td class="muted">' + (i + 1) + '</td><td>' + esc(p.sku) + '</td><td class="num mono">' + FMT.money(p.amt) + '</td><td class="num mono">' + p.qty.toLocaleString('en-IN') + '</td><td class="num mono">' + (p.price >= 100 ? 'BDT ' + p.price.toFixed(0) : 'BDT ' + p.price.toFixed(1)) + '</td><td class="num mono">' + p.share.toFixed(1) + '%</td><td><span class="pill ' + p.pill + '">' + p.label + '</span></td><td style="white-space:normal">' + esc(p.rec) + '</td></tr>').join('') : '<tr><td colspan="8" class="empty">No SKU data</td></tr>') +
       '</tbody></table></div></div>';
 
     Charts.pareto('chSkuPareto', top15.map(p => p.sku), top15.map(p => p.amt));
