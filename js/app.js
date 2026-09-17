@@ -924,11 +924,10 @@
 
     // dynamic header period / last-updated from live data
     if (AEL_DATA.meta) {
-      const { year, complete, avail } = periodInfo();
-      const m0 = M[complete[0] != null ? complete[0] : 0];
-      const m1 = M[complete.length ? complete[complete.length - 1] : Store.maxMonth];
-      $('#periodValue').textContent = m0 + ' – ' + m1 + ' ' + year + ' (8 complete months)';
-      $('#updatedValue').textContent = (AEL_DATA.meta.lastSync || 'Live') + ' · ' + M[avail[avail.length - 1]] + ' MTD';
+      const { year, avail } = periodInfo();
+      const m0 = M[avail[0] != null ? avail[0] : 0];
+      $('#periodValue').textContent = m0 + ' ' + year + ' – Till Date';
+      $('#updatedValue').textContent = AEL_DATA.meta.lastSync || 'Live';
     }
 
     $$('.nav-item').forEach(n => n.addEventListener('click', () => { renderView(n.getAttribute('data-view')); if (window.innerWidth <= 900) $('#sidebar').classList.remove('open'); }));
