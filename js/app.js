@@ -19,7 +19,10 @@
   /* ---------------- Context ---------------- */
   function getContext() {
     const f = state.filters;
-    const upto = f.month !== 'all' ? Number(f.month) : MTD_MONTH;
+    let upto;
+    if (f.month !== 'all') upto = Number(f.month);
+    else if (f.scope === 'ytd') upto = COMPLETE_UPTO;   // 8 complete months (excludes current MTD month)
+    else upto = MTD_MONTH;                               // current month-to-date
     let rows;
     if (f.scope === 'mtd') {
       rows = Store.filterRows({ dsm: f.dsm, zone: f.zone, sr: f.sr, month: upto });
@@ -864,15 +867,16 @@
       Store.rows.forEach(r => { if (!seen[r.mi]) { seen[r.mi] = true; avail.push(r.mi); } });
     }
     avail.sort((a, b) => a - b);
-    return { year, avail };
+    const complete = avail.filter(m => m <= COMPLETE_UPTO);
+    return { year, avail, complete };
   }
 
   function populateFilters() {
-    const { year, avail } = periodInfo();
+    const { year, avail, complete } = periodInfo();
     const mSel = $('#selMonth');
-    mSel.innerHTML = '<option value="all">All months (YTD)</option>' + avail.map(i => '<option value="' + i + '">' + M[i] + ' ' + year + '</option>').join('');
+    mSel.innerHTML = '<option value="all">All months (YTD)</option>' + avail.map(i => '<option value="' + i + '">' + M[i] + ' ' + year + (i > COMPLETE_UPTO ? ' (MTD)' : '') + '</option>').join('');
     const ytdOpt = $('#selScope').querySelector('option[value="ytd"]');
-    if (ytdOpt && avail.length) ytdOpt.textContent = 'YTD (' + M[avail[0]] + ' – ' + M[avail[avail.length - 1]] + ' ' + year + ')';
+    if (ytdOpt && complete.length) ytdOpt.textContent = 'YTD (' + M[complete[0]] + ' – ' + M[complete[complete.length - 1]] + ' ' + year + ')';
     const d = $('#selDsm'); d.innerHTML = '<option value="all">All DSMs</option>' + Store.dsmList.map(x => '<option value="' + esc(x) + '">' + esc(x) + '</option>').join('');
     refreshZoneFilter(); refreshSrFilter();
   }
@@ -913,11 +917,11 @@
 
     // dynamic header period / last-updated from live data
     if (AEL_DATA.meta) {
-      const { year, avail } = periodInfo();
-      const m0 = M[avail[0] != null ? avail[0] : 0];
-      const m1 = M[avail.length ? avail[avail.length - 1] : Store.maxMonth];
-      $('#periodValue').textContent = m0 + ' – ' + m1 + ' ' + year;
-      $('#updatedValue').textContent = AEL_DATA.meta.lastSync || 'Live';
+      const { year, complete, avail } = periodInfo();
+      const m0 = M[complete[0] != null ? complete[0] : 0];
+      const m1 = M[complete.length ? complete[complete.length - 1] : Store.maxMonth];
+      $('#periodValue').textContent = m0 + ' – ' + m1 + ' ' + year + ' (8 complete months)';
+      $('#updatedValue').textContent = (AEL_DATA.meta.lastSync || 'Live') + ' · ' + M[avail[avail.length - 1]] + ' MTD';
     }
 
     $$('.nav-item').forEach(n => n.addEventListener('click', () => { renderView(n.getAttribute('data-view')); if (window.innerWidth <= 900) $('#sidebar').classList.remove('open'); }));
