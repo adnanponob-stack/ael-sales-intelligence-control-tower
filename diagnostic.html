@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RTM Diagnostic &amp; Research Intelligence System</title>
+<link rel="icon" href="data:," />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">AEL</div>
+      <div class="brand-text">
+        <div class="brand-title">RTM Diagnostic</div>
+        <div class="brand-sub">Research Intelligence System</div>
+      </div>
+    </div>
+    <nav class="nav" id="nav">
+      <div class="nav-group">Management</div>
+      <a class="nav-item active" data-view="overview"><span class="nav-num">01</span> Executive Overview</a>
+      <a class="nav-item" data-view="national"><span class="nav-num">02</span> National Performance</a>
+      <a class="nav-item" data-view="zonehealth"><span class="nav-num">03</span> Zone Health</a>
+      <a class="nav-item" data-view="region"><span class="nav-num">04</span> Region &amp; Territory</a>
+
+      <div class="nav-group">Diagnostic</div>
+      <a class="nav-item" data-view="sales"><span class="nav-num">05</span> Sales Performance</a>
+      <a class="nav-item" data-view="distribution"><span class="nav-num">06</span> Distribution</a>
+      <a class="nav-item" data-view="manpower"><span class="nav-num">07</span> Manpower Productivity</a>
+      <a class="nav-item" data-view="customer"><span class="nav-num">08</span> Customer / Outlet</a>
+      <a class="nav-item" data-view="product"><span class="nav-num">09</span> Product / SKU</a>
+      <a class="nav-item" data-view="trend"><span class="nav-num">10</span> Trend &amp; Variance</a>
+
+      <div class="nav-group">Intelligence</div>
+      <a class="nav-item" data-view="problems"><span class="nav-num">11</span> Problem Detection</a>
+      <a class="nav-item" data-view="research"><span class="nav-num">12</span> Research Trigger</a>
+      <a class="nav-item" data-view="action"><span class="nav-num">13</span> Management Action</a>
+
+      <div class="nav-group">Governance</div>
+      <a class="nav-item" data-view="dataquality"><span class="nav-num">14</span> Data Quality</a>
+      <a class="nav-item" data-view="methodology"><span class="nav-num">15</span> Methodology</a>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="foot-credits">Akij Essential Ltd. &middot; R&amp;I v1.0</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="icon-btn menu-toggle" id="menuToggle">&#9776;</button>
+        <div>
+          <h1 class="topbar-title">RTM Business Diagnostic &amp; Research Intelligence System</h1>
+          <div class="topbar-sub">Internal data &rarr; Diagnostic &rarr; Information Gap &rarr; Research Trigger &rarr; Action</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="period-chip"><span class="chip-label">Data Period</span><span class="chip-value" id="periodValue">Jan 2026 &ndash; Till Date</span></div>
+        <div class="period-chip"><span class="chip-label">Last Updated</span><span class="chip-value" id="updatedValue">&mdash;</span></div>
+        <button class="icon-btn" id="themeToggle" title="Toggle theme">&#x263e;</button>
+        <button class="icon-btn" id="notifBtn" title="Alerts">&#128276;<span class="badge" id="notifBadge">0</span></button>
+      </div>
+    </header>
+
+    <div class="filterbar">
+      <div class="filterbar-title">Filters</div>
+      <div class="filter"><label>Month</label><select id="selMonth"></select></div>
+      <div class="filter"><label>Zone</label><select id="selZone"></select></div>
+      <button class="btn btn-ghost" id="resetFilters">Reset</button>
+      <div class="filterbar-meta"><span class="dot dot-green"></span> <span id="filterSummary">All zones &middot; YTD</span></div>
+    </div>
+
+    <main class="content" id="content">
+      <section class="view active" data-view-panel="overview"></section>
+      <section class="view" data-view-panel="national"></section>
+      <section class="view" data-view-panel="zonehealth"></section>
+      <section class="view" data-view-panel="region"></section>
+      <section class="view" data-view-panel="sales"></section>
+      <section class="view" data-view-panel="distribution"></section>
+      <section class="view" data-view-panel="manpower"></section>
+      <section class="view" data-view-panel="customer"></section>
+      <section class="view" data-view-panel="product"></section>
+      <section class="view" data-view-panel="trend"></section>
+      <section class="view" data-view-panel="problems"></section>
+      <section class="view" data-view-panel="research"></section>
+      <section class="view" data-view-panel="action"></section>
+      <section class="view" data-view-panel="dataquality"></section>
+      <section class="view" data-view-panel="methodology"></section>
+    </main>
+  </div>
+</div>
+
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head"><div class="drawer-title" id="drawerTitle">Details</div><button class="icon-btn" id="drawerClose">&#10005;</button></div>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/data.js"></script>
+<script src="js/bd.geo.js"></script>
+<script src="js/diagnostic.js"></script>
+</body>
+</html>

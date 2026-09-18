@@ -11,6 +11,7 @@
     view: 'overview',
     filters: { month: 'all', dsm: 'all', zone: 'all', sr: 'all' },
     mapMetric: 'health',
+    growthBasis: '3m',
     searchOpen: false
   };
 
@@ -493,6 +494,23 @@
   }
 
   /* ---------------- 07b PRODUCT (SKU) ---------------- */
+  function growthData(basis) {
+    const rows = Store.meta.skuGrowth || [];
+    const mom = basis === 'mom';
+    const national = rows.map(d => ({
+      sku: d.sku,
+      recent: d[mom ? 'rm' : 'r3'] || 0,
+      prev: d[mom ? 'pm' : 'p3'] || 0,
+      growth: d[mom ? 'gm' : 'g3'] || 0
+    })).sort((a, b) => b.growth - a.growth);
+    return { national };
+  }
+
+  function growthToggle() {
+    const opts = [['3m', '3-Month'], ['mom', 'MoM']];
+    return opts.map(o => '<button class="pill ' + (state.growthBasis === o[0] ? 'pill-info' : 'pill-gray') + '" data-growthbasis="' + o[0] + '" style="border:none">' + o[1] + '</button>').join(' ');
+  }
+
   function renderProduct() {
     const products = (Store.meta.products || []).slice().sort((a, b) => b.amt - a.amt);
     const totalAmt = products.reduce((s, p) => s + p.amt, 0);
@@ -519,11 +537,12 @@
     const focusValue = focus.reduce((s, p) => s + p.amt, 0);
 
     // SKU growth / degrowth
-    const growth = (Store.meta.skuGrowth || []).slice().sort((a, b) => b.growth - a.growth);
-    const growing = growth.slice(0, 8);
-    const declining = growth.slice(-8).reverse();
-    const zoneGrowth = (Store.meta.skuZoneGrowth || []).filter(z => z.growSku || z.declineSku).slice(0, 12);
+    const basis = state.growthBasis || '3m';
+    const gd = growthData(basis);
+    const growing = gd.national.slice(0, 8);
+    const declining = gd.national.slice(-8).reverse();
     const fmtG = pct => pct == null ? '—' : ((Math.abs(pct) > 999 ? '999%+' : Math.abs(pct).toFixed(0) + '%'));
+    const growthBasisLabel = basis === 'mom' ? 'Month-over-month (Aug vs Jul)' : 'Recent 3 months vs previous 3 months';
 
     $('#content').querySelector('[data-view-panel="product"]').innerHTML =
       '<div class="section-head"><div><div class="section-title">Product Intelligence</div><div class="section-desc">SKU-wise sales, prioritization &amp; focus recommendation</div></div></div>' +
@@ -538,15 +557,12 @@
           '<div class="drawer-section"><h4>Focus — protect &amp; grow (A)</h4>' + focus.map(p => '<div class="detail-row"><span class="lbl">' + esc(p.sku) + ' <span class="muted">(' + p.share.toFixed(0) + '%)</span></span><span class="val mono">' + FMT.money(p.amt) + '</span></div>').join('') + '</div>' +
           '<div class="drawer-section"><h4>Improve — grow (B)</h4>' + improve.map(p => '<div class="detail-row"><span class="lbl">' + esc(p.sku) + ' <span class="muted">(' + p.share.toFixed(1) + '%)</span></span><span class="val mono">' + FMT.money(p.amt) + '</span></div>').join('') + '</div>' +
         '</div>' +
-        '<div class="card"><div class="card-title">SKU Growth / Degrowth</div><div class="card-sub">Recent 3 months vs previous 3 months</div>' +
+        '<div class="card"><div class="card-title">SKU Growth / Degrowth</div><div class="card-sub">' + growthBasisLabel + '</div>' +
+          '<div class="flex" style="margin-bottom:8px">' + growthToggle() + '</div>' +
           '<div class="drawer-section"><h4>Growing ↑</h4>' + (growing.length ? growing.map(g => '<div class="detail-row"><span class="lbl">' + esc(g.sku) + '</span><span class="val mono h-healthy">+' + fmtG(g.growth) + '</span></div>').join('') : '<div class="muted">None</div>') + '</div>' +
           '<div class="drawer-section"><h4>Declining ↓</h4>' + (declining.length ? declining.map(g => '<div class="detail-row"><span class="lbl">' + esc(g.sku) + '</span><span class="val mono h-critical">−' + fmtG(g.growth) + '</span></div>').join('') : '<div class="muted">None</div>') + '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="card mb18"><div class="card-title">Area-wise SKU Movement</div><div class="card-sub">Top growing &amp; declining SKU per zone (recent vs previous 3 months)</div>' +
-      '<div class="table-wrap"><table class="tbl"><thead><tr><th>Zone</th><th>Growing SKU</th><th class="num">Growth</th><th>Declining SKU</th><th class="num">Decline</th></tr></thead><tbody>' +
-      (zoneGrowth.length ? zoneGrowth.map(z => '<tr class="row"><td class="clickable" data-zone="' + esc(z.zone) + '">' + esc(z.zone) + '</td><td>' + (z.growSku ? esc(z.growSku) : '<span class="muted">—</span>') + '</td><td class="num mono h-healthy">' + (z.growPct != null ? '+' + fmtG(z.growPct) : '—') + '</td><td>' + (z.declineSku ? esc(z.declineSku) : '<span class="muted">—</span>') + '</td><td class="num mono h-critical">' + (z.declinePct != null ? '−' + fmtG(z.declinePct) : '—') + '</td></tr>').join('') : '<tr><td colspan="5" class="empty">No data</td></tr>') +
-      '</tbody></table></div></div>' +
       '<div class="card mb18"><div class="card-title">SKU Sales Contribution (Pareto)</div><div class="card-sub">Top SKUs by value with cumulative %</div><div class="chart-box md"><canvas id="chSkuPareto"></canvas></div></div>' +
       '<div class="card"><div class="card-title">SKU Performance &amp; Recommendation</div><div class="card-sub">ABC priority — Focus (A) drives 80% of value, Improve (B) is the growth pool</div>' +
       '<div class="table-wrap"><table class="tbl"><thead><tr><th>#</th><th>SKU</th><th class="num">Value</th><th class="num">Units</th><th class="num">Unit Price</th><th class="num">Share</th><th>Priority</th><th>Recommendation</th></tr></thead><tbody>' +
@@ -835,6 +851,17 @@
       varianceSection('Variance Drivers — SRs', srs, 'data-sr'));
   }
 
+  function openZoneSkuDrawer(zone) {
+    const detail = (Store.meta.skuZoneDetail || []).filter(d => d.zone === zone);
+    if (!detail.length) { openDrawer(zone + ' — SKU Growth', '<div class="muted">No SKU data for this zone</div>'); return; }
+    const fmtG = p => p == null ? '—' : (Math.abs(p) > 999 ? (p >= 0 ? '+' : '−') + '999%+' : (p >= 0 ? '+' : '−') + Math.abs(p).toFixed(0) + '%');
+    const rows = detail.slice().sort((a, b) => b.g3 - a.g3).map(d =>
+      '<div class="detail-row"><span class="lbl">' + esc(d.sku) + '</span><span class="val mono">' +
+      '<span class="' + (d.g3 >= 0 ? 'h-healthy' : 'h-critical') + '">' + fmtG(d.g3) + ' 3M</span> · <span class="' + (d.gm >= 0 ? 'h-healthy' : 'h-critical') + '">' + fmtG(d.gm) + ' MoM</span></span></div>'
+    ).join('');
+    openDrawer(zone + ' — SKU Growth', '<div class="card-sub" style="margin-bottom:10px">All SKUs · 3-month growth vs month-over-month</div>' + rows);
+  }
+
   function openSrDrawer(sr) {
     const ctx = getContext();
     const e = Store.aggBy(ctx.rows.filter(r => r.sr === sr), r => r.sr)[0];
@@ -894,11 +921,15 @@
     const zoneEl = ev.target.closest('[data-zone]');
     const srEl = ev.target.closest('[data-sr]');
     const ptEl = ev.target.closest('[data-point]');
+    const zsEl = ev.target.closest('[data-zone-sku]');
     const sigEl = ev.target.closest('[data-signal]');
     const rsEl = ev.target.closest('[data-research]');
     const mmEl = ev.target.closest('[data-mapmetric]');
+    const gbEl = ev.target.closest('[data-growthbasis]');
     if (mmEl) { state.mapMetric = mmEl.getAttribute('data-mapmetric'); renderView(state.view); return; }
+    if (gbEl) { state.growthBasis = gbEl.getAttribute('data-growthbasis'); renderView(state.view); return; }
     if (zoneEl) { openZoneDrawer(zoneEl.getAttribute('data-zone')); return; }
+    if (zsEl) { openZoneSkuDrawer(zsEl.getAttribute('data-zone-sku')); return; }
     if (srEl) { openSrDrawer(srEl.getAttribute('data-sr')); return; }
     if (ptEl) { openPointDrawer(ptEl.getAttribute('data-point')); return; }
     if (sigEl) { openSignalDrawer(sigEl.getAttribute('data-signal')); return; }
