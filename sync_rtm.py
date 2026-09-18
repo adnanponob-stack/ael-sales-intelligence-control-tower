@@ -285,6 +285,19 @@ WHERE h.dteDeliveryDate >= '{p3}' AND h.dteDeliveryDate < '{end}'
 GROUP BY r.strProductName
 """
 
+# Distributor monthly sales + outlets served
+SQL_DISTRIBUTORS = """
+SELECT strBusinessPartnerName AS Distributor,
+       MONTH(dteDeliveryDate) AS Mn,
+       SUM(numTotalDeliveryAmount) AS Amt,
+       COUNT(DISTINCT intOutletId) AS Outlets
+FROM rtm.tblOutletDeliveryHeader WITH (NOLOCK)
+WHERE dteDeliveryDate >= '{start}' AND dteDeliveryDate < '{end}'
+  AND intBusinessUnitId = {ael_bu}
+  AND ABS(CAST(HASHBYTES('MD5', ISNULL(strBusinessPartnerName, '')) AS INT)) % {buckets} = {bucket}
+GROUP BY strBusinessPartnerName, MONTH(dteDeliveryDate)
+"""
+
 
 def main():
     push = "--push" in sys.argv
@@ -366,6 +379,17 @@ def main():
         sku_growth.append({"sku": sku, "g3": round(g3, 1), "r3": round(r3), "p3": round(p3), "gm": round(gm, 1), "rm": round(rm), "pm": round(pm)})
     sku_growth.sort(key=lambda x: -x["g3"])
     print("      %d SKU growth rows" % len(sku_growth))
+
+    print("[8/9] Fetching distributor monthly sales ...")
+    dist_rows = paged_query(SQL_DISTRIBUTORS, api_key, buckets=25, start=START_DATE, end=end_date, ael_bu=AEL_BUSINESS_UNIT)
+    distributor_sales = []
+    for r in dist_rows:
+        d = (r.get("Distributor") or "").strip()
+        mn = int(num(r.get("Mn")))
+        if not d or mn < 1 or mn > 12:
+            continue
+        distributor_sales.append({"distributor": d, "mn": mn - 1, "amt": round(num(r.get("Amt"))), "outlets": int(num(r.get("Outlets")))})
+    print("      %d distributor-month rows" % len(distributor_sales))
 
     if not actual:
         print("!! No live delivery data found — aborting (keep existing data.js).")
@@ -498,6 +522,7 @@ def main():
             "monthlyDeliveries": monthly_deliveries,
             "products": products,
             "skuGrowth": sku_growth,
+            "distributorSales": distributor_sales,
         },
     }
     js = ("(function(){\nwindow.AEL_DATA = "
@@ -508,7 +533,7 @@ def main():
     with open(data_path, "w", encoding="utf-8") as f:
         f.write(js)
 
-    print("[8/8] Wrote %s" % data_path)
+    print("[9/9] Wrote %s" % data_path)
     if TARGET_MODEL == "memo_count":
         print("      zones=%d  rows=%d  actual=%.0f deliveries  target=%.0f memos" % (
             len(zone_set), len(rows), sum(r[7] for r in rows), sum(r[6] for r in rows)))
