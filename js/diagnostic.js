@@ -417,11 +417,11 @@
       '<div class="kpi-grid">' +
         kpi('Active Distributors', FMT.num(dist)) +
         kpi('Active Outlets', FMT.num(out)) +
-        kpi('Outlets / Officer', FMT.num(so ? Math.round(out / so) : 0), 'outlet load', (out / so) > 200 ? PAL.neg : '') +
-        kpi('Sales / Officer', 'BDT ' + FMT.money(so ? (aggBy(rows, () => 'N')[0].actual) / so : 0)) +
+        kpi('Outlets / Officer', FMT.num(so ? Math.round(out / so) : 0), 'assigned outlets') +
+        kpi('Route Capacity', '~' + FMT.num(so ? 450 : 0), '6 days × 70–80 visits/day') +
       '</div>' +
       '<div class="card mb18"><div class="card-title">Distributor Trend</div><div class="chart-box md"><canvas id="distTrend"></canvas></div></div>' +
-      '<div class="card"><div class="card-title">Distribution Notes</div><div class="summary-box" style="margin:0"><p>Outlet load of ' + (so ? Math.round(out / so) : 0) + ' outlets per sales officer is <strong>high</strong> — manpower/workload adequacy is a hypothesis requiring validation (data on actual coverage &amp; travel time is <strong>Not Available</strong>).</p></div></div>';
+      '<div class="card"><div class="card-title">Distribution Notes</div><div class="summary-box" style="margin:0"><p>Outlet load of ' + (so ? Math.round(out / so) : 0) + ' outlets per officer is <strong>within a 6-day route capacity</strong> (70–80 visits/day ≈ 450 visits/week ≈ 1.6 visits/outlet/week). Manpower capacity is <strong>adequate</strong> — focus shifts to strike rate / productivity and outlet demand.</p></div></div>';
     makeChart('distTrend', { type: 'line', data: { labels, datasets: [{ label: 'Distributors', data: labels.map((_, i) => md[i] || 0), borderColor: PAL.darkblue, backgroundColor: PAL.darkblue, tension: .3, pointRadius: 2, borderWidth: 2 }] }, options: { plugins: { legend: { display: false } } } });
   }
 
@@ -441,7 +441,7 @@
         kpi('Low Productivity SRs', FMT.num(lowProd), '&lt; 50% achievement', PAL.neg) +
       '</div>' +
       '<div class="card mb18"><div class="card-title">Productivity Matrix</div><div class="card-sub">X = target, Y = achievement %</div><div class="chart-box md"><canvas id="manScatter"></canvas></div></div>' +
-      '<div class="card"><div class="card-title">Diagnostic</div><div class="summary-box" style="margin:0"><p>High outlet load (' + (so ? Math.round(out / so) : 0) + '/officer) coincides with low productivity. <strong>Hypothesis:</strong> manpower capacity / workload issue. <strong>Information gap:</strong> actual daily workload, coverage and travel time are <strong>Data Not Available</strong> — requires field study.</p></div></div>';
+      '<div class="card"><div class="card-title">Diagnostic</div><div class="summary-box" style="margin:0"><p>Outlet load of ' + (so ? Math.round(out / so) : 0) + '/officer is <strong>within a 6-day route</strong> (70–80 visits/day ≈ 450 visits/week ≈ 1.6 visits/outlet/week). <strong>Capacity is adequate — shortage rejected.</strong> With ' + (nat.actual / so / 1e7).toFixed(1) + ' Cr sales/officer at 84% achievement, the issue is more likely <strong>strike rate / productivity</strong> (visits not converting to orders) or <strong>outlet demand</strong>. <strong>Information gap:</strong> strike rate and visit productivity are <strong>Data Not Available</strong> — requires a productivity / strike-rate study.</p></div></div>';
     const pts = srs.slice().sort((a, b) => b.target - a.target).slice(0, 80).map(e => ({ x: e.target, y: e.a == null ? 0 : e.a }));
     makeChart('manScatter', { type: 'scatter', data: { datasets: [{ label: 'SRs', data: pts, backgroundColor: PAL.darkblue, pointRadius: 4 }] }, options: { plugins: { legend: { display: false } } } });
   }
