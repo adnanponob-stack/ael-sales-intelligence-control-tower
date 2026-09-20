@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AEL Business Intelligence</title>
+<link rel="icon" href="data:," />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <img class="brand-logo" src="logo.png" alt="Akij Essential Ltd (Consumer)" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';" />
+      <div class="brand-mark" style="display:none">AEL</div>
+      <div class="brand-text">
+        <div class="brand-title">Akij Essential Ltd (Consumer)</div>
+        <div class="brand-sub">Business Intelligence</div>
+      </div>
+    </div>
+    <nav class="nav" id="nav">
+      <div class="nav-group">Performance</div>
+      <a class="nav-item active" data-view="ytd"><span class="nav-num">01</span> YTD Target vs Achievement</a>
+      <a class="nav-item" data-view="zone"><span class="nav-num">02</span> Zone Comparison</a>
+      <a class="nav-item" data-view="territory"><span class="nav-num">03</span> Territory Comparison</a>
+      <a class="nav-item" data-view="manpower"><span class="nav-num">04</span> Manpower Efficiency</a>
+      <a class="nav-item" data-view="sku"><span class="nav-num">05</span> SKU Analysis</a>
+
+      <div class="nav-group">Diagnosis</div>
+      <a class="nav-item" data-view="painpoints"><span class="nav-num">06</span> Pain Points</a>
+      <a class="nav-item" data-view="initiatives"><span class="nav-num">07</span> Initiatives</a>
+
+      <div class="nav-group">Strategy</div>
+      <a class="nav-item" data-view="strategy"><span class="nav-num">08</span> Resources &amp; Advantage</a>
+      <a class="nav-item" data-view="vrio"><span class="nav-num">09</span> VRIO Analysis</a>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="foot-credits">Akij Essential Ltd (Consumer) &middot; BI</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="icon-btn menu-toggle" id="menuToggle">&#9776;</button>
+        <div>
+          <h1 class="topbar-title">AEL Business Intelligence</h1>
+          <div class="topbar-sub">YTD Jan &ndash; Aug 2026 &middot; Data-driven diagnosis for management</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="period-chip"><span class="chip-label">Data Period</span><span class="chip-value" id="periodValue">Jan 2026 &ndash; Till Date</span></div>
+        <div class="period-chip"><span class="chip-label">Last Updated</span><span class="chip-value" id="updatedValue">&mdash;</span></div>
+      </div>
+    </header>
+
+    <main class="content" id="content">
+      <section class="view active" data-view-panel="ytd"></section>
+      <section class="view" data-view-panel="zone"></section>
+      <section class="view" data-view-panel="territory"></section>
+      <section class="view" data-view-panel="manpower"></section>
+      <section class="view" data-view-panel="sku"></section>
+      <section class="view" data-view-panel="painpoints"></section>
+      <section class="view" data-view-panel="initiatives"></section>
+      <section class="view" data-view-panel="strategy"></section>
+      <section class="view" data-view-panel="vrio"></section>
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/data.js"></script>
+<script src="js/simple.js"></script>
+</body>
+</html>
