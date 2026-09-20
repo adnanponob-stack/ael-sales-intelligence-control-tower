@@ -85,7 +85,7 @@
     return 'critical';
   }
   const CLS = { critical: 'Critical', below: 'Below Target', watch: 'Watch', achieved: 'Achieved', high: 'High Performer', nodata: 'No Data' };
-  const CLS_COLOR = { critical: '#C83E4D', below: '#E07B2C', watch: '#D99A00', achieved: '#16845B', high: '#123B5D', nodata: '#A9B4C0' };
+  const CLS_COLOR = { critical: '#C83E4D', below: '#E07B2C', watch: '#D99A00', achieved: '#16845B', high: '#EE1D24', nodata: '#A9B4C0' };
   function clsPill(c) { return '<span class="pill ' + (c === 'critical' ? 'pill-crit' : c === 'below' ? 'pill-neg' : c === 'watch' ? 'pill-warn' : c === 'achieved' ? 'pill-pos' : c === 'high' ? 'pill-info' : 'pill-gray') + '">' + CLS[c] + '</span>'; }
 
   /* ---------------- Diagnostic engine ---------------- */
@@ -183,7 +183,7 @@
 
   /* ---------------- Chart helpers (Chart.js) ---------------- */
   const charts = {};
-  const PAL = { navy: '#0D1F4E', darkblue: '#123B5D', pos: '#16845B', warn: '#D99A00', neg: '#C83E4D', crit: '#8B1E2D', info: '#3B82C4' };
+  const PAL = { navy: '#C8161B', darkblue: '#EE1D24', pos: '#16845B', warn: '#D99A00', neg: '#C83E4D', crit: '#8B1E2D', info: '#3B82C4' };
   function theme() {
     const dark = document.documentElement.getAttribute('data-theme') === 'dark';
     return { grid: dark ? '#243140' : '#E3E8EF', tick: dark ? '#8CA3B8' : '#5B6B7E' };

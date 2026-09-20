@@ -10,8 +10,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <style>
 :root {
-  --navy: #0D1F4E;
-  --darkblue: #123B5D;
+  --navy: #C8161B;
+  --darkblue: #EE1D24;
   --slate: #475569;
   --bg: #F5F7FA;
   --panel: #FFFFFF;
@@ -22,8 +22,8 @@
   --warn: #D99A00;
   --neg: #C83E4D;
   --crit: #8B1E2D;
-  --accent: #123B5D;
-  --accent-soft: #E8F0F7;
+  --accent: #EE1D24;
+  --accent-soft: rgba(238, 29, 36, 0.08);
   --info: #3B82C4;
   --brand: #EE1D24;
   --brand-dark: #C8161B;
@@ -41,15 +41,15 @@
 }
 
 [data-theme="dark"] {
-  --navy: #081626;
-  --darkblue: #123B5D;
+  --navy: #8E0F13;
+  --darkblue: #EE1D24;
   --slate: #8CA3B8;
   --bg: #0D1723;
   --panel: #14202D;
   --border: #243140;
   --text: #E7EDF4;
   --muted: #8CA3B8;
-  --accent-soft: #16283A;
+  --accent-soft: rgba(238, 29, 36, 0.16);
   --brand-soft: rgba(238, 29, 36, 0.16);
   --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.35);
   --shadow-lg: 0 12px 40px rgba(0,0,0,.5);
@@ -1190,7 +1190,7 @@ const Program = (function () {
 const Charts = (function () {
   const registry = {};
   const PAL = {
-    navy: '#0D1F4E', darkblue: '#123B5D', slate: '#475569',
+    navy: '#C8161B', darkblue: '#EE1D24', slate: '#475569',
     pos: '#16845B', warn: '#D99A00', neg: '#C83E4D', crit: '#8B1E2D', info: '#3B82C4',
     health: { healthy: '#16845B', watch: '#D99A00', risk: '#E07B2C', critical: '#C83E4D', nodata: '#A9B4C0' }
   };

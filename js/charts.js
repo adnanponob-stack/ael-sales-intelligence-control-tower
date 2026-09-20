@@ -4,7 +4,7 @@
 const Charts = (function () {
   const registry = {};
   const PAL = {
-    navy: '#0D1F4E', darkblue: '#123B5D', slate: '#475569',
+    navy: '#C8161B', darkblue: '#EE1D24', slate: '#475569',
     pos: '#16845B', warn: '#D99A00', neg: '#C83E4D', crit: '#8B1E2D', info: '#3B82C4',
     health: { healthy: '#16845B', watch: '#D99A00', risk: '#E07B2C', critical: '#C83E4D', nodata: '#A9B4C0' }
   };
