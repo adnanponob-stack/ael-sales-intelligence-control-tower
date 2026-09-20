@@ -585,6 +585,9 @@ window.AEL_DATA = {"months": ["January", "February", "March", "April", "May", "J
     const a = ach(target, actual); const gap = target - actual;
     const series = monthly(ytd);
     const labels = M.slice(0, Upto + 1);
+    const mom = labels.map((_, i) => i > 0 && series[i - 1].a > 0 ? ((series[i].a - series[i - 1].a) / series[i - 1].a) * 100 : null);
+    const lastMom = mom[Upto];
+
     $('#content').querySelector('[data-view-panel="ytd"]').innerHTML =
       '<div class="section-head"><div><div class="section-title">YTD Target vs Achievement</div><div class="section-desc">8 complete months (Jan &ndash; Aug 2026)</div></div></div>' +
       '<div class="kpi-grid">' +
@@ -592,14 +595,21 @@ window.AEL_DATA = {"months": ["January", "February", "March", "April", "May", "J
         kpi('YTD Actual', 'BDT ' + FMT.money(actual)) +
         kpi('Achievement %', a.toFixed(1) + '%', '', a < 90 ? PAL.red : PAL.green) +
         kpi('Sales Gap', 'BDT ' + FMT.money(gap), '', PAL.red) +
+        kpi('MoM Growth', (lastMom == null ? '—' : (lastMom >= 0 ? '+' : '') + lastMom.toFixed(1) + '%'), M[Upto] + ' vs ' + M[Upto - 1], lastMom == null ? '' : lastMom >= 0 ? PAL.green : PAL.red) +
       '</div>' +
-      '<div class="card"><div class="card-title">Monthly Target vs Achievement</div><div class="chart-box lg"><canvas id="cYtd"></canvas></div></div>' +
-      '<div class="card"><div class="card-title">Monthly Detail</div>' +
-      tbl(['Month', 'Target', 'Actual', 'Achievement %', 'Gap'], labels.map((l, i) => [l, 'BDT ' + FMT.money(series[i].t), 'BDT ' + FMT.money(series[i].a), series[i].t > 0 ? (series[i].a / series[i].t * 100).toFixed(1) + '%' : '—', 'BDT ' + FMT.money(series[i].t - series[i].a)]), [1, 2, 3, 4]) + '</div>';
+      '<div class="grid grid-2 mb18">' +
+        '<div class="card"><div class="card-title">Monthly Target vs Achievement</div><div class="chart-box md"><canvas id="cYtd"></canvas></div></div>' +
+        '<div class="card"><div class="card-title">Month-over-Month Growth</div><div class="chart-box md"><canvas id="cMom"></canvas></div></div>' +
+      '</div>' +
+      '<div class="card"><div class="card-title">Month Comparison</div>' +
+      tbl(['Month', 'Target', 'Actual', 'Achievement %', 'Gap', 'MoM Change'], labels.map((l, i) => [l, 'BDT ' + FMT.money(series[i].t), 'BDT ' + FMT.money(series[i].a), series[i].t > 0 ? (series[i].a / series[i].t * 100).toFixed(1) + '%' : '—', 'BDT ' + FMT.money(series[i].t - series[i].a), mom[i] == null ? '—' : '<span class="' + (mom[i] >= 0 ? 'h-healthy' : 'h-critical') + '">' + (mom[i] >= 0 ? '+' : '') + mom[i].toFixed(1) + '%</span>']), [1, 2, 3, 4, 5]) + '</div>';
+
     mk('cYtd', { type: 'bar', data: { labels, datasets: [
       { label: 'Target', data: labels.map((_, i) => series[i].t), backgroundColor: 'rgba(169,180,192,.4)', borderRadius: 3 },
       { label: 'Actual', data: labels.map((_, i) => series[i].a), backgroundColor: PAL.red, borderRadius: 3 }
     ] }, options: { scales: { y: { ticks: { callback: v => 'BDT ' + FMT.money(v) } } } } });
+
+    mk('cMom', { type: 'bar', data: { labels, datasets: [{ data: mom, backgroundColor: mom.map(m => m == null ? PAL.gray : m >= 0 ? PAL.green : PAL.red), borderRadius: 3 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: v => v + '%' } } } } });
   }
 
   /* ---------- 02 ZONE ---------- */
