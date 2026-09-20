@@ -453,6 +453,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -566,8 +567,9 @@ window.AEL_DATA = {"months": ["January", "February", "March", "April", "May", "J
     const el = document.getElementById(id); if (!el) return;
     const t = document.documentElement.getAttribute('data-theme') === 'dark';
     const tick = t ? '#8CA3B8' : '#5B6B7E'; const grid = t ? '#243140' : '#E3E8EF';
+    const dlFmt = cfg.dlFmt; delete cfg.dlFmt;
     cfg.options = Object.assign({ responsive: true, maintainAspectRatio: false, animation: { duration: 200 },
-      plugins: { legend: { labels: { color: tick, font: { size: 11 }, boxWidth: 12, boxHeight: 12, usePointStyle: true } }, tooltip: { backgroundColor: PAL.darkred, titleColor: '#fff', bodyColor: '#fff', padding: 10, cornerRadius: 8 } },
+      plugins: { legend: { labels: { color: tick, font: { size: 11 }, boxWidth: 12, boxHeight: 12, usePointStyle: true } }, tooltip: { backgroundColor: PAL.darkred, titleColor: '#fff', bodyColor: '#fff', padding: 10, cornerRadius: 8 }, datalabels: { display: true, color: tick, font: { size: 9, weight: 'bold' }, anchor: 'end', align: 'end', formatter: dlFmt || ((v) => v == null ? '' : v) } },
       scales: { x: { grid: { color: grid }, ticks: { color: tick, font: { size: 10 } } }, y: { grid: { color: grid }, ticks: { color: tick, font: { size: 10 } } } } }, cfg.options || {});
     charts[id] = new Chart(el.getContext('2d'), cfg);
   }
@@ -605,11 +607,11 @@ window.AEL_DATA = {"months": ["January", "February", "March", "April", "May", "J
       tbl(['Month', 'Target', 'Actual', 'Achievement %', 'Gap', 'MoM Change'], labels.map((l, i) => [l, 'BDT ' + FMT.money(series[i].t), 'BDT ' + FMT.money(series[i].a), series[i].t > 0 ? (series[i].a / series[i].t * 100).toFixed(1) + '%' : '—', 'BDT ' + FMT.money(series[i].t - series[i].a), mom[i] == null ? '—' : '<span class="' + (mom[i] >= 0 ? 'h-healthy' : 'h-critical') + '">' + (mom[i] >= 0 ? '+' : '') + mom[i].toFixed(1) + '%</span>']), [1, 2, 3, 4, 5]) + '</div>';
 
     mk('cYtd', { type: 'bar', data: { labels, datasets: [
-      { label: 'Target', data: labels.map((_, i) => series[i].t), backgroundColor: 'rgba(169,180,192,.4)', borderRadius: 3 },
+      { label: 'Target', data: labels.map((_, i) => series[i].t), backgroundColor: 'rgba(169,180,192,.4)', borderRadius: 3, datalabels: { display: false } },
       { label: 'Actual', data: labels.map((_, i) => series[i].a), backgroundColor: PAL.red, borderRadius: 3 }
-    ] }, options: { scales: { y: { ticks: { callback: v => 'BDT ' + FMT.money(v) } } } } });
+    ] }, dlFmt: v => FMT.money(v), options: { scales: { y: { ticks: { callback: v => 'BDT ' + FMT.money(v) } } } } });
 
-    mk('cMom', { type: 'bar', data: { labels, datasets: [{ data: mom, backgroundColor: mom.map(m => m == null ? PAL.gray : m >= 0 ? PAL.green : PAL.red), borderRadius: 3 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: v => v + '%' } } } } });
+    mk('cMom', { type: 'bar', data: { labels, datasets: [{ data: mom, backgroundColor: mom.map(m => m == null ? PAL.gray : m >= 0 ? PAL.green : PAL.red), borderRadius: 3 }] }, dlFmt: v => v == null ? '' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%', options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: v => v + '%' } } } } });
   }
 
   /* ---------- 02 ZONE ---------- */
@@ -742,7 +744,7 @@ window.AEL_DATA = {"months": ["January", "February", "March", "April", "May", "J
       '<div class="card mb18"><div class="card-title">Chart 3 — VRIO Advantage Score (0–100)</div><div class="chart-box md"><canvas id="cVrio"></canvas></div></div>' +
       '<div class="card"><div class="card-title">VRIO Scorecard</div>' +
       tbl(['Resource / Capability', 'V', 'R', 'I', 'O', 'Score', 'Rating'], ranked.map(d => { const rt = rate(d.s); return ['<b>' + esc(d.name) + '</b>', d.v, d.r, d.i, d.o, '<b>' + d.s.toFixed(1) + '</b>', '<span class="pill ' + rt[1] + '">' + rt[0] + '</span>']; }), [1, 2, 3, 4, 5]) + '</div>';
-    mk('cVrio', { type: 'bar', data: { labels: ranked.map(d => d.name), datasets: [{ data: ranked.map(d => +d.s.toFixed(1)), backgroundColor: ranked.map(d => d.s >= 80 ? PAL.green : d.s >= 60 ? PAL.amber : PAL.gray), borderRadius: 4 }] }, options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { min: 0, max: 100, ticks: { callback: v => v } } } } });
+    mk('cVrio', { type: 'bar', data: { labels: ranked.map(d => d.name), datasets: [{ data: ranked.map(d => +d.s.toFixed(1)), backgroundColor: ranked.map(d => d.s >= 80 ? PAL.green : d.s >= 60 ? PAL.amber : PAL.gray), borderRadius: 4 }] }, dlFmt: v => v.toFixed(1), options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { min: 0, max: 100, ticks: { callback: v => v } } } } });
   }
 
   /* ---------- router ---------- */
