@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="css/style.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="js/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 html { scroll-behavior:smooth; }
@@ -115,7 +116,9 @@ html { scroll-behavior:smooth; }
   function table(headers,rows,right){return '<div class="table-wrap"><table class="tbl"><thead><tr>'+headers.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr class="row">'+r.map((c,i)=>'<td class="'+(right&&right.includes(i)?'num mono':'')+'">'+c+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';}
 
   const charts={};
-  function mk(id,cfg){if(typeof Chart==='undefined')return;if(charts[id]){try{charts[id].destroy();}catch(e){}}const el=document.getElementById(id);if(!el)return;cfg.options=Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11}}}},scales:{x:{grid:{color:'#E3E8EF'}},y:{grid:{color:'#E3E8EF'}}}},cfg.options||{});charts[id]=new Chart(el.getContext('2d'),cfg);}
+  if(typeof Chart!=='undefined' && typeof ChartDataLabels!=='undefined') Chart.register(ChartDataLabels);
+  const dlFmt=v=>v==null||isNaN(v)?'':(Math.abs(v)>=1e7?(v/1e7).toFixed(1)+' Cr':Math.abs(v)>=1e5?(v/1e5).toFixed(1)+' L':Math.abs(v)>=1e3?(v/1e3).toFixed(1)+' K':String(Math.round(v)));
+  function mk(id,cfg){if(typeof Chart==='undefined')return;if(charts[id]){try{charts[id].destroy();}catch(e){}}const el=document.getElementById(id);if(!el)return;cfg.options=Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11}}},datalabels:{display:true,color:'#0F1E2E',font:{size:11,weight:'bold'},anchor:'end',align:'end',formatter:dlFmt}},scales:{x:{grid:{color:'#E3E8EF'}},y:{grid:{color:'#E3E8EF'}}}},cfg.options||{});charts[id]=new Chart(el.getContext('2d'),cfg);}
 
   function execSummary(){
     const g3=(()=>{let r=0,p=0;for(let i=Upto;i>Upto-3&&i>=0;i--)r+=series[i].a;for(let i=Upto-3;i>Upto-6&&i>=0;i--)p+=series[i].a;return p>0?((r-p)/p)*100:null;})();
@@ -144,9 +147,9 @@ html { scroll-behavior:smooth; }
   document.getElementById('report').innerHTML = execSummary()+national()+zoneInt()+regionInt()+terrGap()+manpower()+employeeGap()+gapDiag()+qboard()+roadmap()+register()+impact()+heatmap()+bdMap()+customer()+dq();
   document.getElementById('updatedValue').textContent = meta.lastSync || '—';
 
-  mk('c1',{type:'bar',data:{labels:['Target','Actual'],datasets:[{data:[natT,natA],backgroundColor:['#A9B4C0','#EE1D24'],borderRadius:6}]},options:{plugins:{legend:{display:false}}}});
-  mk('c2',{type:'bar',data:{labels,datasets:[{label:'Target',data:labels.map((_,i)=>series[i].t),backgroundColor:'#A9B4C0'},{label:'Actual',data:labels.map((_,i)=>series[i].a),backgroundColor:'#EE1D24'}]}});
-  mk('c3',{type:'line',data:{labels:M.slice(0,9),datasets:[{label:'Active Outlets',data:M.slice(0,9).map((_,i)=>mc[i]||0),borderColor:'#EE1D24',backgroundColor:'#EE1D24',borderWidth:2.5}]},options:{plugins:{legend:{display:false}}}});
+  mk('c1',{type:'bar',data:{labels:['Target','Actual'],datasets:[{data:[natT,natA],backgroundColor:['#A9B4C0','#EE1D24'],borderRadius:6}]},options:{plugins:{legend:{display:false},datalabels:{color:'#0F1E2E',font:{size:12,weight:'bold'},anchor:'end',align:'end',offset:4,formatter:dlFmt}}}});
+  mk('c2',{type:'bar',data:{labels,datasets:[{label:'Target',data:labels.map((_,i)=>series[i].t),backgroundColor:'#A9B4C0',borderRadius:3,datalabels:{color:'#5B6B7E',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}},{label:'Actual',data:labels.map((_,i)=>series[i].a),backgroundColor:'#EE1D24',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:10.5,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}}]}});
+  mk('c3',{type:'line',data:{labels:M.slice(0,9),datasets:[{label:'Active Outlets',data:M.slice(0,9).map((_,i)=>mc[i]||0),borderColor:'#EE1D24',backgroundColor:'#EE1D24',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#EE1D24'}]},options:{plugins:{legend:{display:false},datalabels:{color:'#0F1E2E',font:{size:10.5,weight:'bold'},anchor:'end',align:'top',offset:6,formatter:v=>v==null?'':Number(v).toLocaleString('en-IN')}}}});
 
   if(typeof L!=='undefined' && window.BD_GEO){
     const ZD={"Agrabad Zone":"Chittagong","Bagerhat Zone":"Bagerhat","Barishal Zone":"Barisal","Bhola Zone":"Bhola","Bogura Zone":"Bogra","Brahmanbaria Zone":"Brahamanbaria","Chakbazar Zone":"Dhaka","Chandpur Zone":"Chandpur","Chokoria Zone":"Cox'SBazar","Cox's Bazar Zone":"Cox'SBazar","Cumilla North Zone":"Comilla","Cumilla South Zone":"Comilla","Dhanmondi Zone":"Dhaka","Dinajpur Zone":"Dinajpur","Faridpur Zone":"Faridpur","Feni Zone":"Feni","Gazipur Zone":"Gazipur","Gulshan Zone":"Dhaka","Hobiganj Zone":"Habiganj","Jamalpur Zone":"Jamalpur","Jatrabari Zone":"Dhaka","Jessore Zone":"Jessore","Jhalokathi Zone":"Jhalokati","Jhenaidah Zone":"Jhenaidah","Keraniganj Zone":"Dhaka","Khagrachori Zone":"Khagrachhari","Khulna Zone":"Khulna","Kishoreganj Zone":"Kishoreganj","Kustia Zone":"Kushtia","Lakshmipur Zone":"Lakshmipur","Madaripur Zone":"Madaripur","Malibag Zone":"Dhaka","Manikganj Zone":"Manikganj","Mawna Zone":"Gazipur","Mirpur Zone":"Dhaka","Moulvibazar Zone":"Maulvibazar","Munshiganj Zone":"Munshiganj","Mymensingh Zone":"Mymensingh","Naogaon Zone":"Naogaon","Narayanganj Zone":"Narayanganj","Narsingdi Zone":"Narsingdi","Netrokona Zone":"Netrakona","Noakhali Zone":"Noakhali","Pabna Zone":"Pabna","Panchagarh Zone":"Panchagarh","Patuakhali Zone":"Patuakhali","Rajshahi Zone":"Rajshahi","Rangpur Zone":"Rangpur","Satkania Zone":"Chittagong","Satkhira Zone":"Satkhira","Savar Zone":"Dhaka","Shitakunda Zone":"Chittagong","Sirajganj Zone":"Sirajganj","Sonargaon Zone":"Narayanganj","Sunamganj Zone":"Sunamganj","Sylhet Zone":"Sylhet","Tangail Zone":"Tangail","Tongi Zone":"Gazipur","Uttara Zone":"Dhaka"};
