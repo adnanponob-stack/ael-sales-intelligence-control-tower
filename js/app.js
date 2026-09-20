@@ -803,13 +803,16 @@
       ['Group diversification', 'financial resilience'],
     ];
     const vrio = [
-      ['Distribution network', 'Yes', 'Yes', 'Partially', 'Yes', 'Sustained advantage', 'pill-pos'],
-      ['Brand (Akij)', 'Yes', 'Yes', 'Yes', 'Yes', 'Sustained advantage', 'pill-pos'],
-      ['RTM data & analytics', 'Yes', 'Partially', 'Partially', 'Yes', 'Temporary / partial', 'pill-warn'],
-      ['Commodity sourcing & scale', 'Yes', 'Partially', 'Partially', 'Yes', 'Cost / parity', 'pill-gray'],
-      ['Sales force', 'Yes', 'No', 'No', 'Yes', 'Parity', 'pill-gray'],
-      ['Group diversification', 'Yes', 'Yes', 'Partially', 'Yes', 'Sustained advantage', 'pill-pos'],
+      { name: 'Brand (Akij)', v: 9, r: 8, i: 9, o: 8 },
+      { name: 'Distribution network', v: 9, r: 8, i: 7, o: 9 },
+      { name: 'Group diversification', v: 8, r: 8, i: 7, o: 8 },
+      { name: 'RTM data & analytics', v: 8, r: 6, i: 6, o: 8 },
+      { name: 'Commodity sourcing & scale', v: 8, r: 6, i: 6, o: 7 },
+      { name: 'Sales force', v: 7, r: 3, i: 3, o: 7 },
     ];
+    const vscore = d => (d.v * 0.30 + d.r * 0.25 + d.i * 0.25 + d.o * 0.20) * 10;
+    const vrioRanked = vrio.map(d => Object.assign({}, d, { score: vscore(d) })).sort((a, b) => b.score - a.score);
+    const vrating = s => s >= 80 ? ['Sustained Advantage', 'pill-pos'] : s >= 60 ? ['Temporary Advantage', 'pill-warn'] : s >= 40 ? ['Competitive Parity', 'pill-gray'] : ['Disadvantage', 'pill-neg'];
 
     $('#content').querySelector('[data-view-panel="strategy"]').innerHTML =
       '<div class="section-head"><div><div class="section-title">Strategic Position</div><div class="section-desc">Resources → Capabilities → Competitive Advantage (VRIO)</div></div></div>' +
@@ -821,11 +824,13 @@
         '<div class="card"><div class="card-title">Capabilities</div>' + list1(capabilities) + '</div>' +
         '<div class="card"><div class="card-title">Competitive Advantage</div>' + list('', advantages) + '</div>' +
       '</div>' +
-      '<div class="card"><div class="card-title">VRIO Analysis</div><div class="card-sub">V = Valuable · R = Rare · I = Inimitable · O = Organized to capture value</div>' +
-      '<div class="table-wrap"><table class="tbl"><thead><tr><th>Resource / Capability</th><th>V</th><th>R</th><th>I</th><th>O</th><th>Implication</th></tr></thead><tbody>' +
-      vrio.map(r => '<tr class="row"><td>' + esc(r[0]) + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td><td>' + r[3] + '</td><td>' + r[4] + '</td><td><span class="pill ' + r[6] + '">' + r[5] + '</span></td></tr>').join('') +
+      '<div class="card mb18"><div class="card-title">VRIO Analysis — Quantitative Score</div><div class="card-sub">Advantage Score = (0.30×V + 0.25×R + 0.25×I + 0.20×O) × 10 — each dimension 1–10</div><div class="chart-box md"><canvas id="chVrio"></canvas></div></div>' +
+      '<div class="card"><div class="card-title">VRIO Scorecard</div>' +
+      '<div class="table-wrap"><table class="tbl"><thead><tr><th>Resource / Capability</th><th class="num">V</th><th class="num">R</th><th class="num">I</th><th class="num">O</th><th class="num">Score /100</th><th>Rating</th></tr></thead><tbody>' +
+      vrioRanked.map(d => { const rt = vrating(d.score); return '<tr class="row"><td>' + esc(d.name) + '</td><td class="num mono">' + d.v + '</td><td class="num mono">' + d.r + '</td><td class="num mono">' + d.i + '</td><td class="num mono">' + d.o + '</td><td class="num mono" style="font-weight:700">' + d.score.toFixed(1) + '</td><td><span class="pill ' + rt[1] + '">' + rt[0] + '</span></td></tr>'; }).join('') +
       '</tbody></table></div>' +
-      '<div class="mt-note" style="margin-top:12px">V alone → parity · V+R → temporary · V+R+I → unused advantage · V+R+I+O → sustained competitive advantage. Built on internal RTM data + general knowledge of Akij Group.</div></div>';
+      '<div class="mt-note" style="margin-top:12px">Rubric (1–10): V = value to business · R = rarity vs competitors · I = difficulty to imitate · O = organisation to capture. Rating: ≥80 Sustained · 60–79 Temporary · 40–59 Parity · &lt;40 Disadvantage.</div></div>';
+    Charts.hbar('chVrio', vrioRanked.map(d => d.name), vrioRanked.map(d => +d.score.toFixed(1)), v => v >= 80 ? Charts.PAL.pos : v >= 60 ? Charts.PAL.warn : Charts.PAL.slate, 'Score');
   }
 
   function dqRow(label, val, pct, status) {    const pill = status === 'pos' ? '<span class="pill pill-pos">OK</span>' : status === 'neg' ? '<span class="pill pill-neg">Issue</span>' : status === 'warn' ? '<span class="pill pill-warn">Watch</span>' : '<span class="pill pill-info">Info</span>';
