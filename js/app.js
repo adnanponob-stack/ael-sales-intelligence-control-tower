@@ -769,8 +769,66 @@
       '<div class="mt-note" style="margin-top:12px">Last refresh: Sep 2026 &middot; Source: AEL Distributor SR Monthly (Jan 2026 – Till Date)</div></div>';
   }
 
-  function dqRow(label, val, pct, status) {
-    const pill = status === 'pos' ? '<span class="pill pill-pos">OK</span>' : status === 'neg' ? '<span class="pill pill-neg">Issue</span>' : status === 'warn' ? '<span class="pill pill-warn">Watch</span>' : '<span class="pill pill-info">Info</span>';
+  /* ---------------- 16 STRATEGIC POSITION ---------------- */
+  function renderStrategy() {
+    const list = (title, items) => '<div class="drawer-section"><h4>' + title + '</h4>' + items.map(i => '<div class="detail-row"><span class="lbl">' + esc(i[0]) + '</span><span class="val" style="text-align:left;font-weight:400">' + esc(i[1]) + '</span></div>').join('') + '</div>';
+    const list1 = items => items.map(i => '<div class="detail-row"><span class="lbl">' + esc(i) + '</span></div>').join('');
+
+    const tangible = [
+      ['Distribution network', '529 distributors · 145,920 outlets · 59 zones · 551 territories (live RTM)'],
+      ['Sales force', '532 sales officers · 6-day route × 70–80 outlets/day'],
+      ['Product portfolio', '59 SKUs — rice, atta, maida, salt, edible oil, suji'],
+      ['Manufacturing & supply chain', 'Akij Group production and commodity sourcing'],
+      ['Financial backing', 'Akij Group — diversified conglomerate'],
+    ];
+    const intangible = [
+      ['Brand', 'Akij — trusted household name in Bangladesh'],
+      ['Data & RTM infrastructure', 'iBOS RTM system, BI dashboards, automated data pipelines'],
+      ['Market intelligence', 'R&I team — forecasting, market audits, KPI governance'],
+      ['Human capital', 'Experienced market intelligence & research professionals'],
+    ];
+    const capabilities = [
+      'Route-to-Market execution — deep outlet coverage & distributor management',
+      'Data-driven market intelligence — RTM diagnostic → research trigger',
+      'Commodity price forecasting — quantitative + qualitative models',
+      'KPI & performance governance',
+      'Distribution & channel management',
+      'Staple-food portfolio management',
+    ];
+    const advantages = [
+      ['Distribution reach', 'deep, hard-to-replicate outlet network'],
+      ['Brand trust', 'household name driving mass-market pull'],
+      ['Data-driven decisions', 'RTM analytics → diagnostic → research'],
+      ['Commodity scale', 'cost & supply-chain advantage in staples'],
+      ['Group diversification', 'financial resilience'],
+    ];
+    const vrio = [
+      ['Distribution network', 'Yes', 'Yes', 'Partially', 'Yes', 'Sustained advantage', 'pill-pos'],
+      ['Brand (Akij)', 'Yes', 'Yes', 'Yes', 'Yes', 'Sustained advantage', 'pill-pos'],
+      ['RTM data & analytics', 'Yes', 'Partially', 'Partially', 'Yes', 'Temporary / partial', 'pill-warn'],
+      ['Commodity sourcing & scale', 'Yes', 'Partially', 'Partially', 'Yes', 'Cost / parity', 'pill-gray'],
+      ['Sales force', 'Yes', 'No', 'No', 'Yes', 'Parity', 'pill-gray'],
+      ['Group diversification', 'Yes', 'Yes', 'Partially', 'Yes', 'Sustained advantage', 'pill-pos'],
+    ];
+
+    $('#content').querySelector('[data-view-panel="strategy"]').innerHTML =
+      '<div class="section-head"><div><div class="section-title">Strategic Position</div><div class="section-desc">Resources → Capabilities → Competitive Advantage (VRIO)</div></div></div>' +
+      '<div class="grid grid-2 mb18">' +
+        '<div class="card"><div class="card-title">Resources — Tangible</div>' + list('', tangible) + '</div>' +
+        '<div class="card"><div class="card-title">Resources — Intangible</div>' + list('', intangible) + '</div>' +
+      '</div>' +
+      '<div class="grid grid-2 mb18">' +
+        '<div class="card"><div class="card-title">Capabilities</div>' + list1(capabilities) + '</div>' +
+        '<div class="card"><div class="card-title">Competitive Advantage</div>' + list('', advantages) + '</div>' +
+      '</div>' +
+      '<div class="card"><div class="card-title">VRIO Analysis</div><div class="card-sub">V = Valuable · R = Rare · I = Inimitable · O = Organized to capture value</div>' +
+      '<div class="table-wrap"><table class="tbl"><thead><tr><th>Resource / Capability</th><th>V</th><th>R</th><th>I</th><th>O</th><th>Implication</th></tr></thead><tbody>' +
+      vrio.map(r => '<tr class="row"><td>' + esc(r[0]) + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td><td>' + r[3] + '</td><td>' + r[4] + '</td><td><span class="pill ' + r[6] + '">' + r[5] + '</span></td></tr>').join('') +
+      '</tbody></table></div>' +
+      '<div class="mt-note" style="margin-top:12px">V alone → parity · V+R → temporary · V+R+I → unused advantage · V+R+I+O → sustained competitive advantage. Built on internal RTM data + general knowledge of Akij Group.</div></div>';
+  }
+
+  function dqRow(label, val, pct, status) {    const pill = status === 'pos' ? '<span class="pill pill-pos">OK</span>' : status === 'neg' ? '<span class="pill pill-neg">Issue</span>' : status === 'warn' ? '<span class="pill pill-warn">Watch</span>' : '<span class="pill pill-info">Info</span>';
     return '<tr class="row"><td>' + esc(label) + '</td><td class="num mono">' + val.toLocaleString('en-IN') + '</td><td class="num mono">' + (pct ? pct.toFixed(1) + '%' : '—') + '</td><td>' + pill + '</td></tr>';
   }
 
@@ -1007,7 +1065,7 @@
     manpower: renderManpower, customer: renderCustomer, competitor: renderCompetitor,
     market: renderMarket, product: renderProduct, signals: renderSignals, rootcause: renderRootCause,
     research: renderResearch, impact: renderImpact, action: renderAction,
-    monitoring: renderMonitoring, dataquality: renderDataQuality
+    monitoring: renderMonitoring, dataquality: renderDataQuality, strategy: renderStrategy
   };
 
   function renderView(view) {
