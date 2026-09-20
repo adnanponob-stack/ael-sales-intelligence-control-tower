@@ -572,7 +572,7 @@ window.AEL_DATA = {"months": ["January", "February", "March", "April", "May", "J
     const tick = t ? '#8CA3B8' : '#5B6B7E'; const grid = t ? '#243140' : '#E3E8EF';
     const dlFmt = cfg.dlFmt; delete cfg.dlFmt;
     cfg.options = Object.assign({ responsive: true, maintainAspectRatio: false, animation: { duration: 200 },
-      plugins: { legend: { labels: { color: tick, font: { size: 11 }, boxWidth: 12, boxHeight: 12, usePointStyle: true } }, tooltip: { backgroundColor: PAL.darkred, titleColor: '#fff', bodyColor: '#fff', padding: 10, cornerRadius: 8 }, datalabels: { display: true, color: (t ? '#E5E7EB' : '#1F2937'), font: { size: 10, weight: 'bold' }, anchor: 'end', align: 'end', offset: 2, formatter: dlFmt || ((v) => v == null ? '' : v) } },
+      plugins: { legend: { labels: { color: tick, font: { size: 11 }, boxWidth: 12, boxHeight: 12, usePointStyle: true } }, tooltip: { backgroundColor: PAL.darkred, titleColor: '#fff', bodyColor: '#fff', padding: 10, cornerRadius: 8 }, datalabels: { display: true, color: '#FFFFFF', font: { size: 10, weight: 'bold' }, anchor: 'center', align: 'center', formatter: dlFmt || ((v) => v == null ? '' : v) } },
       scales: { x: { grid: { color: grid }, ticks: { color: tick, font: { size: 10 } } }, y: { grid: { color: grid }, ticks: { color: tick, font: { size: 10 } } } } }, cfg.options || {});
     charts[id] = new Chart(el.getContext('2d'), cfg);
   }
@@ -793,7 +793,7 @@ window.AEL_DATA = {"months": ["January", "February", "March", "April", "May", "J
       '<div class="card mb18"><div class="card-title">Chart 3 — VRIO Advantage Score (0–100)</div><div class="chart-box md"><canvas id="cVrio"></canvas></div></div>' +
       '<div class="card"><div class="card-title">VRIO Scorecard</div>' +
       tbl(['Resource / Capability', 'V', 'R', 'I', 'O', 'Score', 'Rating'], ranked.map(d => { const rt = rate(d.s); return ['<b>' + esc(d.name) + '</b>', d.v, d.r, d.i, d.o, '<b>' + d.s.toFixed(1) + '</b>', '<span class="pill ' + rt[1] + '">' + rt[0] + '</span>']; }), [1, 2, 3, 4, 5]) + '</div>';
-    mk('cVrio', { type: 'bar', data: { labels: ranked.map(d => d.name), datasets: [{ data: ranked.map(d => +d.s.toFixed(1)), backgroundColor: ranked.map(d => d.s >= 80 ? PAL.green : d.s >= 60 ? PAL.amber : PAL.gray), borderRadius: 4 }] }, dlFmt: v => v.toFixed(1), options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { min: 0, max: 100, ticks: { callback: v => v } } } } });
+    mk('cVrio', { type: 'bar', data: { labels: ranked.map(d => d.name), datasets: [{ data: ranked.map(d => +d.s.toFixed(1)), backgroundColor: ranked.map(d => d.s >= 80 ? PAL.green : d.s >= 60 ? PAL.amber : '#64748B'), borderRadius: 4 }] }, dlFmt: v => v.toFixed(1), options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { min: 0, max: 100, ticks: { callback: v => v } } } } });
   }
 
   /* ---------- router ---------- */
