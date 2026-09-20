@@ -98,6 +98,7 @@ select, input { font-family: inherit; }
   font-weight: 800; font-size: 14px; color: #fff; letter-spacing: .5px;
   box-shadow: 0 2px 8px rgba(226,35,26,.45);
 }
+.brand-logo { height: 44px; width: auto; max-width: 132px; object-fit: contain; display: block; }
 .brand-title { font-weight: 700; font-size: 14px; color: #fff; }
 .brand-sub { font-size: 10.5px; color: #7FA3C4; letter-spacing: .4px; }
 
@@ -459,7 +460,8 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 <div class="app">
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <div class="brand-mark">AEL</div>
+      <img class="brand-logo" src="logo.png" alt="Akij Essential" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';" />
+      <div class="brand-mark" style="display:none">AEL</div>
       <div class="brand-text">
         <div class="brand-title">RTM Diagnostic</div>
         <div class="brand-sub">Research Intelligence System</div>

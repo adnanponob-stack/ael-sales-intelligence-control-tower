@@ -87,6 +87,7 @@ select, input { font-family: inherit; }
   font-weight: 800; font-size: 14px; color: #fff; letter-spacing: .5px;
   box-shadow: 0 2px 8px rgba(226,35,26,.45);
 }
+.brand-logo { height: 44px; width: auto; max-width: 132px; object-fit: contain; display: block; }
 .brand-title { font-weight: 700; font-size: 14px; color: #fff; }
 .brand-sub { font-size: 10.5px; color: #7FA3C4; letter-spacing: .4px; }
 
