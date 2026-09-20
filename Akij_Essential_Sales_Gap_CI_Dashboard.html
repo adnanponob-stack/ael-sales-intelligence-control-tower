@@ -1,76 +1,84 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Akij Essential (Consumer) — Sales Gap & Competitive Intelligence Dashboard</title>
+<title>Akij Essential (Consumer) — Sales Gap & CI Dashboard</title>
 <link rel="icon" href="data:," />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-:root { --red:#C0392B; --amber:#D97706; --blue:#2E5B9F; --green:#1B8A5A; --red2:#DC2626; --green2:#16A34A; --bg:#EEF1F6; --card:#FFFFFF; --text:#111827; --muted:#475569; --border:#E5E7EB; }
-* { box-sizing:border-box; }
-body { font-family:'Inter',sans-serif; margin:0; background:var(--bg); color:var(--text); font-size:14px; line-height:1.5; }
-.report-header { background:linear-gradient(135deg,#7B1E1E,#C0392B); color:#fff; padding:28px 36px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
-.report-header .logo { width:54px; height:54px; object-fit:contain; background:#fff; border-radius:10px; padding:5px; }
-.report-header h1 { font-size:24px; margin:0; letter-spacing:-.3px; }
-.report-header .sub { font-size:13px; color:#F2C4C0; margin-top:4px; }
-.report-header .period { margin-left:auto; font-size:12px; color:#F2C4C0; text-align:right; }
-.section { padding:26px 36px; border-bottom:1px solid var(--border); }
-.section h2 { font-size:19px; margin:0 0 4px; color:var(--red); letter-spacing:-.2px; }
-.section .desc { font-size:12.5px; color:var(--muted); margin-bottom:18px; }
-.kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:18px; }
-.kpi { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px 16px; box-shadow:0 1px 2px rgba(0,0,0,.03); }
-.kpi .l { font-size:10.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); font-weight:600; }
-.kpi .v { font-size:22px; font-weight:800; margin-top:5px; }
-.kpi .s { font-size:11px; color:var(--muted); margin-top:3px; }
-.grid { display:grid; gap:16px; }
-.grid-2 { grid-template-columns:1fr 1fr; }
-.grid-3 { grid-template-columns:1fr 1fr 1fr; }
-.card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:18px; box-shadow:0 1px 2px rgba(0,0,0,.03); }
-.card h3 { font-size:14px; margin:0 0 12px; color:var(--blue); }
-table { width:100%; border-collapse:collapse; font-size:12.5px; }
-th { text-align:left; padding:8px 10px; background:#F3F4F6; color:var(--muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid var(--border); }
-td { padding:7px 10px; border-bottom:1px solid var(--border); }
-tr:nth-child(even) td { background:#FAFAFB; }
-.num { text-align:right; font-variant-numeric:tabular-nums; }
-.pill { display:inline-block; padding:2px 9px; border-radius:20px; font-size:10.5px; font-weight:600; }
-.p-red { background:#FDE2E1; color:var(--red2); }
-.p-amber { background:#FEF3C7; color:var(--amber); }
-.p-green { background:#DCFCE7; color:var(--green2); }
-.p-gray { background:#F3F4F6; color:var(--muted); }
-.p-blue { background:#DBEAFE; color:var(--blue); }
-.insight { background:#FEF9F0; border-left:4px solid var(--amber); padding:12px 16px; border-radius:6px; font-size:13px; margin-bottom:16px; }
-.chart-box { position:relative; height:300px; }
-.chart-box.md { height:260px; }
+html { scroll-behavior:smooth; }
+.report-section { padding:22px 24px; border-bottom:1px solid var(--border); }
+.report-section h2 { font-size:19px; margin:0 0 4px; color:var(--brand); letter-spacing:-.2px; }
+.report-section .desc { font-size:12.5px; color:var(--muted); margin-bottom:16px; }
 .heat { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
 .heat-cell { border-radius:8px; padding:10px 12px; color:#fff; font-size:12px; }
 .heat-cell .z { font-weight:700; }
-.heat-cell .a { font-size:11px; opacity:.9; }
+.heat-cell .a { font-size:11px; opacity:.92; }
 .map-wrap { display:flex; gap:16px; }
 .map-box { flex:1; height:420px; border-radius:10px; border:1px solid var(--border); overflow:hidden; }
 .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:11.5px; color:var(--muted); margin-bottom:12px; }
 .legend span { display:flex; align-items:center; gap:5px; }
 .dot { width:11px; height:11px; border-radius:50%; display:inline-block; }
-.qboard td:first-child { font-weight:700; color:var(--blue); }
-@media (max-width:900px){ .grid-2,.grid-3 { grid-template-columns:1fr; } .map-wrap { flex-direction:column; } .report-header .period { margin-left:0; text-align:left; } }
+.nav-item { cursor:pointer; }
+@media (max-width:900px){ .map-wrap{flex-direction:column;} }
 </style>
 </head>
 <body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <img class="brand-logo" src="logo.png" alt="Akij Essential Ltd (Consumer)" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';" />
+      <div class="brand-mark" style="display:none">AEL</div>
+      <div class="brand-text">
+        <div class="brand-title">Akij Essential Ltd (Consumer)</div>
+        <div class="brand-sub">Sales Gap &amp; CI Dashboard</div>
+      </div>
+    </div>
+    <nav class="nav" id="nav">
+      <div class="nav-group">Overview</div>
+      <a class="nav-item active" data-sec="sec1"><span class="nav-num">01</span> Executive Summary</a>
+      <a class="nav-item" data-sec="sec2"><span class="nav-num">02</span> National Performance</a>
+      <a class="nav-item" data-sec="sec3"><span class="nav-num">03</span> Zone Intelligence</a>
+      <a class="nav-item" data-sec="sec4"><span class="nav-num">04</span> Region Intelligence</a>
+      <a class="nav-item" data-sec="sec5"><span class="nav-num">05</span> Territory Gap</a>
+      <a class="nav-item" data-sec="sec6"><span class="nav-num">06</span> Manpower Intelligence</a>
+      <a class="nav-item" data-sec="sec7"><span class="nav-num">07</span> Employee Gap Analysis</a>
+      <a class="nav-item" data-sec="sec8"><span class="nav-num">08</span> Gap Diagnostics</a>
+      <div class="nav-group">Intelligence</div>
+      <a class="nav-item" data-sec="sec9"><span class="nav-num">09</span> MD Business Question Board</a>
+      <a class="nav-item" data-sec="sec10"><span class="nav-num">10</span> CI Research Roadmap</a>
+      <a class="nav-item" data-sec="sec11"><span class="nav-num">11</span> Gap Investigation Register</a>
+      <a class="nav-item" data-sec="sec12"><span class="nav-num">12</span> Business Impact</a>
+      <a class="nav-item" data-sec="sec13"><span class="nav-num">13</span> Business Health Heat Map</a>
+      <a class="nav-item" data-sec="sec14"><span class="nav-num">14</span> Bangladesh Summary</a>
+      <a class="nav-item" data-sec="sec15"><span class="nav-num">15</span> Customer Intelligence</a>
+      <a class="nav-item" data-sec="sec16"><span class="nav-num">16</span> Data Quality &amp; Methodology</a>
+    </nav>
+    <div class="sidebar-foot"><div class="foot-credits">Akij Essential Ltd (Consumer) &middot; CI</div></div>
+  </aside>
 
-<header class="report-header">
-  <img class="logo" src="logo.png" alt="logo" onerror="this.style.display='none'" />
-  <div>
-    <h1>Akij Essential Ltd (Consumer)</h1>
-    <div class="sub">Sales Gap &amp; Competitive Intelligence Dashboard</div>
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="icon-btn menu-toggle" id="menuToggle">&#9776;</button>
+        <div>
+          <h1 class="topbar-title">Sales Gap &amp; Competitive Intelligence Dashboard</h1>
+          <div class="topbar-sub">Akij Essential Ltd (Consumer) &middot; Jan 2026 &ndash; Till Date</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="period-chip"><span class="chip-label">Last Updated</span><span class="chip-value" id="updatedValue">&mdash;</span></div>
+      </div>
+    </header>
+    <main class="content" id="report" style="padding:0"></main>
   </div>
-  <div class="period">Data period: <b>Jan 2026 – Till Date</b> (8 complete months)<br/>Source: iBOS RTM &middot; Akij Essential BU 144</div>
-</header>
-
-<div id="report"></div>
+</div>
 
 <script src="js/data.js"></script>
 <script src="js/bd.geo.js"></script>
@@ -86,183 +94,60 @@ tr:nth-child(even) td { background:#FAFAFB; }
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function agg(rs,k){const m=new Map();rs.forEach(r=>{if(!m.has(r[k]))m.set(r[k],{name:r[k],t:0,a:0});const e=m.get(r[k]);e.t+=r.target;e.a+=r.actual;});return Array.from(m.values()).map(e=>({name:e.name,t:e.t,a:e.a,ach:ach(e.t,e.a),gap:e.t-e.a}));}
   function monthly(rs){const o=Array.from({length:12},()=>({t:0,a:0}));rs.forEach(r=>{o[r.mi].t+=r.target;o[r.mi].a+=r.actual;});return o;}
-  const nat = agg(ytd,'sr').length ? {t:ytd.reduce((s,r)=>s+r.target,0),a:ytd.reduce((s,r)=>s+r.actual,0)} : {t:0,a:0};
-  const natAch = ach(nat.t,nat.a), gap=nat.t-nat.a;
-  const zones = agg(ytd,'zone').sort((a,b)=>b.a-a.a);
-  const divs = agg(ytd,'dsm').sort((a,b)=>b.a-a.a);
-  const terrs = agg(ytd,'sr').sort((a,b)=>b.a-a.a);
+  const natT=ytd.reduce((s,r)=>s+r.target,0), natA=ytd.reduce((s,r)=>s+r.actual,0);
+  const natAch=ach(natT,natA), gap=natT-natA;
+  const zones=agg(ytd,'zone').sort((a,b)=>b.a-a.a);
+  const divs=agg(ytd,'dsm').sort((a,b)=>b.a-a.a);
+  const terrs=agg(ytd,'sr').sort((a,b)=>b.a-a.a);
   const products=(meta.products||[]).slice().sort((a,b)=>b.amt-a.amt);
   const totalSku=products.reduce((s,p)=>s+p.amt,0);
-  const skuG={};(meta.skuGrowth||[]).forEach(g=>skuG[g.sku]=g);
   const so=meta.activeSalesOfficers||0, out=meta.activeCustomers||0, dist=meta.distributors||0;
   const mc=meta.monthlyCustomers||[];
-  const series=monthly(ytd);
-  const labels=M.slice(0,Upto+1);
+  const series=monthly(ytd), labels=M.slice(0,Upto+1);
   const crit=zones.filter(z=>z.ach!=null&&z.ach<70).length, under=zones.filter(z=>z.ach!=null&&z.ach<90).length;
   let cum=0,focus=0;products.forEach(p=>{cum+=p.amt;if(cum<=totalSku*.8)focus++;});
-  const health=a=>a==null?{c:'#9CA3AF',l:'No data'}:a<70?{c:'#DC2626',l:'Critical'}:a<90?{c:'#D97706',l:'Watch'}:{c:'#16A34A',l:'Healthy'};
-  const hpill=a=>{const h=health(a);return '<span class="pill '+(h.l==='Healthy'?'p-green':h.l==='Watch'?'p-amber':h.l==='Critical'?'p-red':'p-gray')+'">'+h.l+'</span>';};
-  const achc=a=>a==null?'':a>=100?'#16A34A':a>=90?'#0E9F6E':a>=70?'#D97706':'#DC2626';
+  const health=a=>a==null?{c:'#A9B4C0',l:'No data'}:a<70?{c:'#C83E4D',l:'Critical'}:a<90?{c:'#D99A00',l:'Watch'}:{c:'#16845B',l:'Healthy'};
+  const hpill=a=>{const h=health(a);return '<span class="pill '+(h.l==='Healthy'?'pill-pos':h.l==='Watch'?'pill-warn':h.l==='Critical'?'pill-neg':'pill-gray')+'">'+h.l+'</span>';};
+  const achc=a=>a==null?'':a>=100?'#16845B':a>=90?'#16845B':a>=70?'#D99A00':'#C83E4D';
 
-  function sec(title,desc,html){return '<section class="section"><h2>'+title+'</h2><div class="desc">'+desc+'</div>'+html+'</section>';}
-  function kpi(l,v,s,c){return '<div class="kpi"><div class="l">'+l+'</div><div class="v" style="color:'+(c||'inherit')+'">'+v+'</div>'+(s?'<div class="s">'+s+'</div>':'')+'</div>';}
-  function table(headers,rows,right){return '<table><thead><tr>'+headers.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map((c,i)=>'<td class="'+(right&&right.includes(i)?'num':'')+'">'+c+'</td>').join('')+'</tr>').join('')+'</tbody></table>';}
+  function sec(id,title,desc,html){return '<section class="report-section" id="'+id+'"><h2>'+title+'</h2><div class="desc">'+desc+'</div>'+html+'</section>';}
+  function kpi(l,v,s,c){return '<div class="kpi"><div class="kpi-accent"></div><div class="kpi-label">'+l+'</div><div class="kpi-value" style="color:'+(c||'')+'">'+v+'</div>'+(s?'<div class="kpi-sub">'+s+'</div>':'')+'</div>';}
+  function table(headers,rows,right){return '<div class="table-wrap"><table class="tbl"><thead><tr>'+headers.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr class="row">'+r.map((c,i)=>'<td class="'+(right&&right.includes(i)?'num mono':'')+'">'+c+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';}
 
   const charts={};
-  function mk(id,cfg){if(typeof Chart==='undefined')return;if(charts[id]){try{charts[id].destroy();}catch(e){}}const el=document.getElementById(id);if(!el)return;cfg.options=Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11}}}},scales:{x:{grid:{color:'#E5E7EB'}},y:{grid:{color:'#E5E7EB'}}}},cfg.options||{});charts[id]=new Chart(el.getContext('2d'),cfg);}
+  function mk(id,cfg){if(typeof Chart==='undefined')return;if(charts[id]){try{charts[id].destroy();}catch(e){}}const el=document.getElementById(id);if(!el)return;cfg.options=Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11}}}},scales:{x:{grid:{color:'#E3E8EF'}},y:{grid:{color:'#E3E8EF'}}}},cfg.options||{});charts[id]=new Chart(el.getContext('2d'),cfg);}
 
-  /* 1 Executive Intelligence Summary */
   function execSummary(){
     const g3=(()=>{let r=0,p=0;for(let i=Upto;i>Upto-3&&i>=0;i--)r+=series[i].a;for(let i=Upto-3;i>Upto-6&&i>=0;i--)p+=series[i].a;return p>0?((r-p)/p)*100:null;})();
-    return sec('Executive Intelligence Summary','One-page management position',
-      '<div class="kpis">'+
-      kpi('Actual Sales','BDT '+money(nat.a)) + kpi('Target','BDT '+money(nat.t)) +
-      kpi('Achievement %',natAch.toFixed(1)+'%','',natAch<90?'#DC2626':'#16A34A') + kpi('Sales Gap','BDT '+money(gap),'', '#DC2626') +
-      kpi('3M Growth',g3==null?'—':(g3>=0?'+':'')+g3.toFixed(1)+'%') + kpi('Critical Zones',String(crit),'', '#DC2626') +
-      kpi('Distributors',String(dist)) + kpi('Active Outlets',out.toLocaleString('en-IN')) +
-      '</div>'+
-      '<div class="insight">YTD achievement is <b>'+natAch.toFixed(1)+'%</b> with a gap of <b>BDT '+money(gap)+'</b>. '+
-      '<b>'+crit+'</b> zones are Critical and <b>'+under+'</b> are below 90%. Coverage is adequate (6-day route), so the gap points to <b>strike-rate / productivity</b> and <b>demand</b> rather than manpower shortage. The top zones and SKUs are concentrated — see the MD Business Question Board and CI Research Roadmap.</div>'+
-      '<div class="grid grid-2"><div class="card"><h3>Target vs Actual (YTD)</h3><div class="chart-box" style="height:200px"><canvas id="c1"></canvas></div></div>'+
-      '<div class="card"><h3>Business Health — Executive View</h3>'+table(['Dimension','Status'],[['Sales performance',hpill(natAch)],['Geographic','<span class="pill p-amber">'+under+' zones below 90%</span>'],['Distribution','<span class="pill p-green">'+dist+' distributors</span>'],['Manpower','<span class="pill p-green">Coverage adequate</span>'],['Product','<span class="pill p-amber">'+focus+' SKUs = 80% value</span>']],[]) +'</div></div>');
+    return sec('sec1','Executive Intelligence Summary','One-page management position',
+      '<div class="kpi-grid">'+kpi('Actual Sales','BDT '+money(natA))+kpi('Target','BDT '+money(natT))+kpi('Achievement %',natAch.toFixed(1)+'%','',natAch<90?'#C83E4D':'#16845B')+kpi('Sales Gap','BDT '+money(gap),'', '#C83E4D')+kpi('3M Growth',g3==null?'—':(g3>=0?'+':'')+g3.toFixed(1)+'%')+kpi('Critical Zones',String(crit),'','#C83E4D')+kpi('Distributors',String(dist))+kpi('Active Outlets',out.toLocaleString('en-IN'))+'</div>'+
+      '<div class="summary-box" style="margin:14px 0"><p>YTD achievement is <strong>'+natAch.toFixed(1)+'%</strong> with a gap of <strong>BDT '+money(gap)+'</strong>. <strong>'+crit+'</strong> zones are Critical, <strong>'+under+'</strong> below 90%. Coverage is adequate (6-day route), so the gap points to <strong>strike-rate / productivity</strong> and <strong>demand</strong> rather than manpower shortage.</p></div>'+
+      '<div class="grid grid-2"><div class="card"><div class="card-title">Target vs Actual (YTD)</div><div class="chart-box" style="height:220px"><canvas id="c1"></canvas></div></div>'+
+      '<div class="card"><div class="card-title">Business Health — Executive View</div>'+table(['Dimension','Status'],[['Sales performance',hpill(natAch)],['Geographic','<span class="pill pill-warn">'+under+' zones below 90%</span>'],['Distribution','<span class="pill pill-pos">'+dist+' distributors</span>'],['Manpower','<span class="pill pill-pos">Coverage adequate</span>'],['Product','<span class="pill pill-warn">'+focus+' SKUs = 80% value</span>']],[])+'</div></div>');
   }
+  function national(){return sec('sec2','National Performance','Monthly target vs actual (BDT)','<div class="card"><div class="chart-box"><canvas id="c2"></canvas></div></div><div class="card" style="margin-top:14px">'+table(['Month','Target','Actual','Ach %','Gap'],labels.map((l,i)=>[l,'BDT '+money(series[i].t),'BDT '+money(series[i].a),series[i].t>0?(series[i].a/series[i].t*100).toFixed(1)+'%':'—','BDT '+money(series[i].t-series[i].a)]),[1,2,3,4])+'</div>');}
+  function zoneInt(){return sec('sec3','Zone Intelligence','Zone health: target, actual, achievement, gap','<div class="card">'+table(['Zone','Target','Actual','Ach %','Gap','Health'],zones.map(z=>['<b>'+esc(z.name)+'</b>','BDT '+money(z.t),'BDT '+money(z.a),'<b style="color:'+achc(z.ach)+'">'+(z.ach==null?'—':z.ach.toFixed(1)+'%')+'</b>','BDT '+money(z.gap),hpill(z.ach)]),[1,2,3,4])+'</div>');}
+  function regionInt(){return sec('sec4','Region Intelligence','Division (region) performance','<div class="card">'+table(['Division','Target','Actual','Ach %','Gap'],divs.map(d=>['<b>'+esc(d.name)+'</b>','BDT '+money(d.t),'BDT '+money(d.a),'<b style="color:'+achc(d.ach)+'">'+(d.ach==null?'—':d.ach.toFixed(1)+'%')+'</b>','BDT '+money(d.gap)]),[1,2,3,4])+'</div>');}
+  function terrGap(){const top=terrs.slice(0,10),bottom=terrs.slice(-20).reverse();return sec('sec5','Territory Gap Intelligence','Top 10 vs bottom 20 territories (research candidates)','<div class="grid grid-2"><div class="card"><div class="card-title">Top 10 Territories</div>'+table(['Territory','Ach %','Gap'],top.map(t=>['<b>'+esc(t.name)+'</b>','<b style="color:'+achc(t.ach)+'">'+(t.ach==null?'—':t.ach.toFixed(1)+'%')+'</b>','BDT '+money(t.gap)]),[1,2])+'</div><div class="card"><div class="card-title">Bottom 20 Territories — investigate</div>'+table(['Territory','Ach %','Gap'],bottom.map(t=>['<b>'+esc(t.name)+'</b>','<b style="color:'+achc(t.ach)+'">'+(t.ach==null?'—':t.ach.toFixed(1)+'%')+'</b>','BDT '+money(t.gap)]),[1,2])+'</div></div>');}
+  function manpower(){const top=terrs.slice(0,20);return sec('sec6','Manpower Intelligence','Sales force productivity & top performers','<div class="kpi-grid">'+kpi('Sales Officers',String(so))+kpi('Sales / Officer','BDT '+money(so?natA/so:0))+kpi('Outlets / Officer',String(so?Math.round(out/so):0))+kpi('Avg Achievement',natAch.toFixed(1)+'%','',natAch<90?'#C83E4D':'#16845B')+'</div><div class="card"><div class="card-title">Top 20 Territories / SRs</div>'+table(['#','Territory','Target','Actual','Ach %'],top.map((t,i)=>[i+1,'<b>'+esc(t.name)+'</b>','BDT '+money(t.t),'BDT '+money(t.a),'<b style="color:'+achc(t.ach)+'">'+(t.ach==null?'—':t.ach.toFixed(1)+'%')+'</b>']),[2,3,4])+'</div>');}
+  function employeeGap(){const srs=terrs.filter(t=>t.ach!=null&&t.ach<70).sort((a,b)=>a.ach-b.ach).slice(0,20);return sec('sec7','Employee / Territory Gap Analysis','Lowest-achievement territories — flag for area coverage review','<div class="card"><div class="card-title">Lowest Achievement Territories</div>'+table(['Territory','Zone','Target','Actual','Ach %','Gap'],srs.map(t=>{const z=rows.find(r=>r.sr===t.name);return ['<b>'+esc(t.name)+'</b>',esc(z?z.zone:'—'),'BDT '+money(t.t),'BDT '+money(t.a),'<b style="color:#C83E4D">'+(t.ach==null?'—':t.ach.toFixed(1)+'%')+'</b>','BDT '+money(t.gap)];}),[2,3,4,5])+'</div>');}
+  function gapDiag(){const topGap=zones.filter(z=>z.gap>0).sort((a,b)=>b.gap-a.gap).slice(0,10);return sec('sec8','Gap Diagnostics','Where the national gap is concentrated + potential drivers','<div class="card"><div class="card-title">Top Gap Contributors</div>'+table(['Zone','Gap','Ach %','% of National Gap'],topGap.map(z=>['<b>'+esc(z.name)+'</b>','BDT '+money(z.gap),(z.ach==null?'—':z.ach.toFixed(1)+'%'),(gap>0?(z.gap/gap*100).toFixed(1)+'%':'—')]),[1,2,3])+'</div><div class="card" style="margin-top:14px"><div class="card-title">Root-Cause Dimensions (potential drivers — not confirmed)</div><table><tbody><tr><td><b>Coverage</b></td><td>Outlet & route coverage — adequate</td></tr><tr><td><b>Productivity</b></td><td>Strike rate / conversion — Data gap</td></tr><tr><td><b>Portfolio</b></td><td>SKU concentration — '+focus+' SKUs = 80% value</td></tr><tr><td><b>Distribution</b></td><td>Distributor productivity — outlet detail required</td></tr><tr><td><b>Sales force</b></td><td>Manpower adequate; productivity is the question</td></tr></tbody></table></div>');}
+  function qboard(){const qs=[['Where are we?','Achievement '+natAch.toFixed(1)+'%','FACT'],['What is the gap?','BDT '+money(gap),'FACT'],['Where is the gap?',crit+' critical zones','FINDING'],['What is driving it?','Strike-rate / demand (coverage adequate)','HYPOTHESIS'],['What do we not know?','Competitor, route, customer behaviour','DATA GAP'],['What to research?','Bottom zones, strike rate, competitor','RESEARCH']];return sec('sec9','MD Business Question Board','Management questions answered with evidence status','<div class="card">'+table(['Question','Answer (evidence)','Type'],qs.map(q=>{const p=q[2]==='FACT'?'pill-info':q[2]==='FINDING'?'pill-pos':q[2]==='HYPOTHESIS'?'pill-warn':'pill-gray';return ['<b>'+q[0]+'</b>',q[1],'<span class="pill '+p+'">'+q[2]+'</span>'];}),[0])+'</div>');}
+  function roadmap(){const rs=[['1','Regional Market Assessment','Bottom 20 zones — demand, coverage, competition','R&I','Critical'],['2','Sales Force Productivity / Strike-Rate Study','Visits vs orders conversion','R&I / Sales','High'],['3','Retail Audit / Consumer Study','Declining SKUs — availability vs preference','R&I','High'],['4','Competitor Assessment','Price & availability','CI','High'],['5','Distribution / Coverage Audit','Route & outlet coverage','RTM','Medium']];return sec('sec10','CI Research Roadmap','What to study, in priority order','<div class="card">'+table(['Priority','Research Area','Scope','Owner','Severity'],rs.map(r=>['<b>'+r[0]+'</b>',r[1],r[2],r[3],'<span class="pill '+(r[4]==='Critical'?'pill-crit':'pill-warn')+'">'+r[4]+'</span>']),[0])+'</div>');}
+  function register(){const reg=[['INV-001','Geographic gap (bottom zones)',crit+' zones <70%','Open','R&I'],['INV-002','Strike rate / productivity','Coverage adequate, ach '+natAch.toFixed(0)+'%','Open','R&I / Sales'],['INV-003','SKU concentration',focus+' SKUs = 80% value','Open','Marketing'],['INV-004','Competitor data','No internal competitor data','Open','CI'],['INV-005','Target quality','Memo targets erratic','Open','Commercial/MIS']];return sec('sec11','Gap Investigation Register','Tracked investigations','<div class="card">'+table(['ID','Issue','Evidence','Status','Owner'],reg.map(r=>['<b>'+r[0]+'</b>',r[1],r[2],'<span class="pill pill-gray">'+r[3]+'</span>',r[4]]),[0])+'</div>');}
+  function impact(){return sec('sec12','Business Impact Framework','Quantified loss & recovery opportunity','<div class="kpi-grid">'+kpi('Sales Gap','BDT '+money(gap),'target − actual','#C83E4D')+kpi('Recovery Opportunity','BDT '+money(gap*0.4),'≈ 40% recoverable','#16845B')+kpi('Critical Zones',String(crit),'< 70% achievement','#C83E4D')+kpi('Concentrated SKUs',String(focus),'= 80% of value','#D99A00')+'</div>');}
+  function heatmap(){return sec('sec13','Business Health — Heat Map','Zone achievement (colour-coded)','<div class="legend"><span><span class="dot" style="background:#16845B"></span>Healthy ≥90%</span><span><span class="dot" style="background:#D99A00"></span>Watch 70–90%</span><span><span class="dot" style="background:#C83E4D"></span>Critical <70%</span><span><span class="dot" style="background:#A9B4C0"></span>No data</span></div><div class="heat">'+zones.map(z=>'<div class="heat-cell" style="background:'+health(z.ach).c+'"><div class="z">'+esc(z.name)+'</div><div class="a">'+(z.ach==null?'—':z.ach.toFixed(1)+'%')+' · '+money(z.a)+'</div></div>').join('')+'</div>');}
+  function bdMap(){return sec('sec14','Bangladesh — Executive Summary by Zone','Geographic health','<div class="map-wrap"><div id="bdmap" class="map-box"></div><div class="card" style="flex:0 0 300px"><div class="card-title">Zone Health</div>'+table(['Zone','Ach %','Health'],zones.slice(0,15).map(z=>['<b>'+esc(z.name)+'</b>',(z.ach==null?'—':z.ach.toFixed(1)+'%'),hpill(z.ach)]),[1])+'</div></div>');}
+  function customer(){return sec('sec15','Customer Intelligence — Customer Target vs Sales (MT)','Active outlets by month','<div class="kpi-grid">'+kpi('Active Outlets',out.toLocaleString('en-IN'))+kpi('Sales / Outlet','BDT '+money(out?natA/out:0))+kpi('Outlets / Officer',String(so?Math.round(out/so):0))+'</div><div class="card"><div class="chart-box md" style="height:240px"><canvas id="c3"></canvas></div></div><div class="summary-box" style="margin-top:14px"><p>Customer-level target vs sales (MT) and purchase frequency are <strong>Data Not Available</strong> in the current source.</p></div>');}
+  function dq(){const total=rows.length;const dupes=total-new Set(rows.map(r=>r.sr+'|'+r.zone+'|'+r.mi)).size;const zt=rows.filter(r=>r.target===0).length;const jan=rows.filter(r=>r.mi===0).reduce((s,r)=>s+r.actual,0)<1e7;return sec('sec16','Data Quality & Methodology','Validation, definitions, limitations','<div class="card"><div class="card-title">Data Quality</div>'+table(['Check','Status'],[['Records',total.toLocaleString('en-IN')],['Duplicate SR-zone-month',dupes||'None'],['Zero target',zt||'None'],['January data (partial)',jan?'Flagged':'OK'],['National = Σ zones','Reconciled'],['Competitor / route data','Data Not Available']],[1])+'</div><div class="card" style="margin-top:14px"><div class="card-title">Methodology</div><table><tbody><tr><td><b>Source</b></td><td>iBOS RTM (live) — Akij Essential (Consumer) BU 144</td></tr><tr><td><b>Period</b></td><td>Jan 2026 – Till Date (8 complete months)</td></tr><tr><td><b>Achievement</b></td><td>Actual ÷ Target × 100</td></tr><tr><td><b>Health signal</b></td><td>Healthy ≥90% · Watch 70–90% · Critical &lt;70%</td></tr><tr><td><b>Principle</b></td><td>FACT vs FINDING vs HYPOTHESIS vs DATA GAP</td></tr></tbody></table></div>');}
 
-  /* 2 National Performance */
-  function national(){
-    return sec('National Performance','Monthly target vs actual (BDT)',
-      '<div class="card"><div class="chart-box"><canvas id="c2"></canvas></div></div>'+
-      '<div class="card" style="margin-top:16px">'+table(['Month','Target','Actual','Ach %','Gap'],labels.map((l,i)=>[l,'BDT '+money(series[i].t),'BDT '+money(series[i].a),series[i].t>0?(series[i].a/series[i].t*100).toFixed(1)+'%':'—','BDT '+money(series[i].t-series[i].a)]),[1,2,3,4])+'</div>');
-  }
+  document.getElementById('report').innerHTML = execSummary()+national()+zoneInt()+regionInt()+terrGap()+manpower()+employeeGap()+gapDiag()+qboard()+roadmap()+register()+impact()+heatmap()+bdMap()+customer()+dq();
+  document.getElementById('updatedValue').textContent = meta.lastSync || '—';
 
-  /* 3 Zone Intelligence */
-  function zoneInt(){
-    return sec('Zone Intelligence','Zone health: target, actual, achievement, gap',
-      '<div class="card">'+table(['Zone','Target','Actual','Ach %','Gap','Health'],zones.map(z=>['<b>'+esc(z.name)+'</b>','BDT '+money(z.t),'BDT '+money(z.a),'<b style="color:'+achc(z.ach)+'">'+(z.ach==null?'—':z.ach.toFixed(1)+'%')+'</b>','BDT '+money(z.gap),hpill(z.ach)]),[1,2,3,4])+'</div>');
-  }
+  mk('c1',{type:'bar',data:{labels:['Target','Actual'],datasets:[{data:[natT,natA],backgroundColor:['#A9B4C0','#EE1D24'],borderRadius:6}]},options:{plugins:{legend:{display:false}}}});
+  mk('c2',{type:'bar',data:{labels,datasets:[{label:'Target',data:labels.map((_,i)=>series[i].t),backgroundColor:'#A9B4C0'},{label:'Actual',data:labels.map((_,i)=>series[i].a),backgroundColor:'#EE1D24'}]}});
+  mk('c3',{type:'line',data:{labels:M.slice(0,9),datasets:[{label:'Active Outlets',data:M.slice(0,9).map((_,i)=>mc[i]||0),borderColor:'#EE1D24',backgroundColor:'#EE1D24',borderWidth:2.5}]},options:{plugins:{legend:{display:false}}}});
 
-  /* 4 Region Intelligence */
-  function regionInt(){
-    return sec('Region Intelligence','Division (region) performance',
-      '<div class="card">'+table(['Division','Target','Actual','Ach %','Gap'],divs.map(d=>['<b>'+esc(d.name)+'</b>','BDT '+money(d.t),'BDT '+money(d.a),'<b style="color:'+achc(d.ach)+'">'+(d.ach==null?'—':d.ach.toFixed(1)+'%')+'</b>','BDT '+money(d.gap)]),[1,2,3,4])+'</div>');
-  }
-
-  /* 5 Territory Gap Intelligence */
-  function terrGap(){
-    const top=terrs.slice(0,10), bottom=terrs.slice(-20).reverse();
-    return sec('Territory Gap Intelligence','Top 10 vs bottom 20 territories (research candidates)',
-      '<div class="grid grid-2">'+
-      '<div class="card"><h3>Top 10 Territories</h3>'+table(['Territory','Ach %','Gap'],top.map(t=>['<b>'+esc(t.name)+'</b>','<b style="color:'+achc(t.ach)+'">'+(t.ach==null?'—':t.ach.toFixed(1)+'%')+'</b>','BDT '+money(t.gap)]),[1,2])+'</div>'+
-      '<div class="card"><h3>Bottom 20 Territories — investigate</h3>'+table(['Territory','Ach %','Gap'],bottom.map(t=>['<b>'+esc(t.name)+'</b>','<b style="color:'+achc(t.ach)+'">'+(t.ach==null?'—':t.ach.toFixed(1)+'%')+'</b>','BDT '+money(t.gap)]),[1,2])+'</div>'+
-      '</div>');
-  }
-
-  /* 6 Manpower Intelligence */
-  function manpower(){
-    const top=terrs.slice(0,20);
-    return sec('Manpower Intelligence','Sales force productivity & top performers',
-      '<div class="kpis">'+kpi('Sales Officers',String(so))+kpi('Sales / Officer','BDT '+money(so?nat.a/so:0))+kpi('Outlets / Officer',String(so?Math.round(out/so):0))+kpi('Avg Achievement',natAch.toFixed(1)+'%','',natAch<90?'#DC2626':'#16A34A')+'</div>'+
-      '<div class="card"><h3>Top 20 Territories / SRs</h3>'+table(['#','Territory','Target','Actual','Ach %'],top.map((t,i)=>[i+1,'<b>'+esc(t.name)+'</b>','BDT '+money(t.t),'BDT '+money(t.a),'<b style="color:'+achc(t.ach)+'">'+(t.ach==null?'—':t.ach.toFixed(1)+'%')+'</b>']),[2,3,4])+'</div>');
-  }
-
-  /* 7 Employee Gap Analysis — chronological with area coverage */
-  function employeeGap(){
-    const srs=terrs.filter(t=>t.ach!=null&&t.ach<70).sort((a,b)=>a.ach-b.ach).slice(0,20);
-    return sec('Employee / Territory Gap Analysis','Lowest-achievement territories (chronological gap) — flag for area coverage review',
-      '<div class="card"><h3>Lowest Achievement Territories</h3>'+table(['Territory','Zone','Target','Actual','Ach %','Gap'],srs.map(t=>{const z=rows.find(r=>r.sr===t.name);return ['<b>'+esc(t.name)+'</b>',esc(z?z.zone:'—'),'BDT '+money(t.t),'BDT '+money(t.a),'<b style="color:#DC2626">'+(t.ach==null?'—':t.ach.toFixed(1)+'%')+'</b>','BDT '+money(t.gap)];}),[2,3,4,5])+'</div>'+
-      '<div class="insight">These territories show the widest gap. Coverage data per territory is not available in the source — a field/area-coverage audit is required to separate coverage from productivity.</div>');
-  }
-
-  /* 8 Gap Diagnostics */
-  function gapDiag(){
-    const topGap=zones.filter(z=>z.gap>0).sort((a,b)=>b.gap-a.gap).slice(0,10);
-    return sec('Gap Diagnostics','Where the national gap is concentrated + potential drivers',
-      '<div class="card"><h3>Top Gap Contributors</h3>'+table(['Zone','Gap','Ach %','% of National Gap'],topGap.map(z=>['<b>'+esc(z.name)+'</b>','BDT '+money(z.gap),(z.ach==null?'—':z.ach.toFixed(1)+'%'),(gap>0?(z.gap/gap*100).toFixed(1)+'%':'—')]),[1,2,3])+'</div>'+
-      '<div class="card" style="margin-top:16px"><h3>Root-Cause Dimensions (potential drivers — not confirmed)</h3>'+
-      '<table><tbody>'+
-      '<tr><td><b>Coverage</b></td><td>Outlet & route coverage — adequate (outlets/officer within 6-day route capacity)</td></tr>'+
-      '<tr><td><b>Productivity</b></td><td>Strike rate / conversion — Data gap (visit data required)</td></tr>'+
-      '<tr><td><b>Portfolio</b></td><td>SKU concentration — '+focus+' SKUs = 80% of value</td></tr>'+
-      '<tr><td><b>Distribution</b></td><td>Distributor productivity — outlet detail required</td></tr>'+
-      '<tr><td><b>Sales force</b></td><td>Manpower adequate; productivity is the open question</td></tr>'+
-      '</tbody></table></div>');
-  }
-
-  /* 9 MD Business Question Board */
-  function qboard(){
-    const qs=[['Where are we?','Achievement '+natAch.toFixed(1)+'%','FACT'],['What is the gap?','BDT '+money(gap),'FACT'],['Where is the gap?',crit+' critical zones; concentrated','FINDING'],['What is driving it?','Strike-rate/productivity & demand (coverage adequate)','HYPOTHESIS'],['What do we not know?','Competitor, route productivity, customer behaviour','DATA GAP'],['What to research?','Bottom zones, strike rate, competitor, SKU','RESEARCH']];
-    return sec('MD Business Question Board','Management questions answered with evidence status',
-      '<div class="card"><table class="qboard"><thead><tr><th>Question</th><th>Answer (evidence)</th><th>Type</th></tr></thead><tbody>'+
-      qs.map(q=>{const p=q[2]==='FACT'?'p-blue':q[2]==='FINDING'?'p-green':q[2]==='HYPOTHESIS'?'p-amber':'p-gray';return '<tr><td>'+q[0]+'</td><td>'+q[1]+'</td><td><span class="pill '+p+'">'+q[2]+'</span></td></tr>';}).join('')+'</tbody></table></div>');
-  }
-
-  /* 10 CI Research Roadmap */
-  function roadmap(){
-    const rs=[['1','Regional Market Assessment','Bottom 20 zones — demand, coverage, competition','R&I','Critical'],['2','Sales Force Productivity / Strike-Rate Study','Visits vs orders conversion','R&I / Sales','High'],['3','Retail Audit / Consumer Study','Declining SKUs — availability vs preference','R&I','High'],['4','Competitor Assessment','Price & availability (no internal competitor data)','CI','High'],['5','Distribution / Coverage Audit','Route & outlet coverage detail','RTM','Medium']];
-    return sec('CI Research Roadmap','What to study, in priority order',
-      '<div class="card">'+table(['Priority','Research Area','Scope','Owner','Severity'],rs.map(r=>['<b>'+r[0]+'</b>',r[1],r[2],r[3],'<span class="pill '+(r[4]==='Critical'?'p-red':'p-amber')+'">'+r[4]+'</span>']),[0])+'</div>');
-  }
-
-  /* 11 Gap Investigation Register */
-  function register(){
-    const reg=[['INV-001','Geographic gap (bottom zones)','Evidence: '+crit+' zones <70%','Open','R&I'],['INV-002','Strike rate / productivity','Coverage adequate, ach '+natAch.toFixed(0)+'%','Open','R&I / Sales'],['INV-003','SKU concentration',''+focus+' SKUs = 80% value','Open','Marketing'],['INV-004','Competitor data','No internal competitor data','Open','CI'],['INV-005','Target quality','Memo targets erratic','Open','Commercial/MIS']];
-    return sec('Gap Investigation Register','Tracked investigations',
-      '<div class="card">'+table(['ID','Issue','Evidence','Status','Owner'],reg.map(r=>['<b>'+r[0]+'</b>',r[1],r[2],'<span class="pill p-gray">'+r[3]+'</span>',r[4]]),[0])+'</div>');
-  }
-
-  /* 12 Business Impact Framework */
-  function impact(){
-    const recovery=gap*0.4;
-    return sec('Business Impact Framework','Quantified loss & recovery opportunity',
-      '<div class="kpis">'+kpi('Sales Gap','BDT '+money(gap),'target − actual','#DC2626')+kpi('Recovery Opportunity','BDT '+money(recovery),'≈ 40% recoverable','#16A34A')+kpi('Critical Zones',String(crit),'< 70% achievement','#DC2626')+kpi('Concentrated SKUs',String(focus),'= 80% of value','#D97706')+'</div>');
-  }
-
-  /* 13 Business Health Heat Map */
-  function heatmap(){
-    return sec('Business Health — Heat Map','Zone achievement (colour-coded)',
-      '<div class="legend"><span><span class="dot" style="background:#16A34A"></span>Healthy ≥90%</span><span><span class="dot" style="background:#D97706"></span>Watch 70–90%</span><span><span class="dot" style="background:#DC2626"></span>Critical <70%</span><span><span class="dot" style="background:#9CA3AF"></span>No data</span></div>'+
-      '<div class="heat">'+zones.map(z=>'<div class="heat-cell" style="background:'+health(z.ach).c+'"><div class="z">'+esc(z.name)+'</div><div class="a">'+(z.ach==null?'—':z.ach.toFixed(1)+'%')+' · '+money(z.a)+'</div></div>').join('')+'</div>');
-  }
-
-  /* 14 Bangladesh Executive Summary (map) */
-  function bdMap(){
-    return sec('Bangladesh — Executive Summary by Zone','Geographic health',
-      '<div class="map-wrap"><div id="bdmap" class="map-box"></div><div class="card" style="flex:0 0 300px"><h3>Zone Health</h3>'+
-      table(['Zone','Ach %','Health'],zones.slice(0,15).map(z=>['<b>'+esc(z.name)+'</b>',(z.ach==null?'—':z.ach.toFixed(1)+'%'),hpill(z.ach)]),[1])+'</div></div>');
-  }
-
-  /* 15 Customer Intelligence — Target vs Sales (MT) */
-  function customer(){
-    const labels9=M.slice(0,9);
-    return sec('Customer Intelligence — Customer Target vs Sales (MT)','Active outlets by month (target detail not in source)',
-      '<div class="kpis">'+kpi('Active Outlets',out.toLocaleString('en-IN'))+kpi('Sales / Outlet','BDT '+money(out?nat.a/out:0))+kpi('Outlets / Officer',String(so?Math.round(out/so):0))+'</div>'+
-      '<div class="card"><div class="chart-box md"><canvas id="c3"></canvas></div></div>'+
-      '<div class="insight">Customer-level target vs sales (MT) and purchase frequency are <b>Data Not Available</b> in the current source — required for a full customer intelligence study.</div>');
-  }
-
-  /* 16 Data Quality & Methodology */
-  function dq(){
-    const total=rows.length;const dupes=total-new Set(rows.map(r=>r.sr+'|'+r.zone+'|'+r.mi)).size;const zt=rows.filter(r=>r.target===0).length;const jan=rows.filter(r=>r.mi===0).reduce((s,r)=>s+r.actual,0)<1e7;
-    return sec('Data Quality & Methodology','Validation, definitions, limitations',
-      '<div class="card"><h3>Data Quality</h3>'+table(['Check','Status'],[['Records',total.toLocaleString('en-IN')],['Duplicate SR-zone-month',dupes||'None'],['Zero target',zt||'None'],['January data (partial)',jan?'Flagged':'OK'],['National = Σ zones','Reconciled'],['Competitor / route data','Data Not Available']],[1])+'</div>'+
-      '<div class="card" style="margin-top:16px"><h3>Methodology</h3><table><tbody>'+
-      '<tr><td><b>Source</b></td><td>iBOS RTM (live) — Akij Essential (Consumer) BU 144</td></tr>'+
-      '<tr><td><b>Period</b></td><td>Jan 2026 – Till Date (8 complete months)</td></tr>'+
-      '<tr><td><b>Achievement</b></td><td>Actual ÷ Target × 100</td></tr>'+
-      '<tr><td><b>Gap</b></td><td>Target − Actual</td></tr>'+
-      '<tr><td><b>Health signal</b></td><td>Healthy ≥90% · Watch 70–90% · Critical &lt;70%</td></tr>'+
-      '<tr><td><b>Principle</b></td><td>FACT vs FINDING vs HYPOTHESIS vs DATA GAP — no fabricated data</td></tr>'+
-      '</tbody></table></div>');
-  }
-
-  /* render all */
-  const html = execSummary()+national()+zoneInt()+regionInt()+terrGap()+manpower()+employeeGap()+gapDiag()+qboard()+roadmap()+register()+impact()+heatmap()+bdMap()+customer()+dq();
-  document.getElementById('report').innerHTML = html;
-
-  mk('c1',{type:'bar',data:{labels:['Target','Actual'],datasets:[{data:[nat.t,nat.a],backgroundColor:['#AEBBD6','#C0392B'],borderRadius:6}]},options:{plugins:{legend:{display:false}}}});
-  mk('c2',{type:'bar',data:{labels,datasets:[{label:'Target',data:labels.map((_,i)=>series[i].t),backgroundColor:'#AEBBD6'},{label:'Actual',data:labels.map((_,i)=>series[i].a),backgroundColor:'#C0392B'}]}});
-  mk('c3',{type:'line',data:{labels:M.slice(0,9),datasets:[{label:'Active Outlets',data:M.slice(0,9).map((_,i)=>mc[i]||0),borderColor:'#C0392B',backgroundColor:'#C0392B',borderWidth:2.5}]},options:{plugins:{legend:{display:false}}}});
-
-  /* map */
   if(typeof L!=='undefined' && window.BD_GEO){
     const ZD={"Agrabad Zone":"Chittagong","Bagerhat Zone":"Bagerhat","Barishal Zone":"Barisal","Bhola Zone":"Bhola","Bogura Zone":"Bogra","Brahmanbaria Zone":"Brahamanbaria","Chakbazar Zone":"Dhaka","Chandpur Zone":"Chandpur","Chokoria Zone":"Cox'SBazar","Cox's Bazar Zone":"Cox'SBazar","Cumilla North Zone":"Comilla","Cumilla South Zone":"Comilla","Dhanmondi Zone":"Dhaka","Dinajpur Zone":"Dinajpur","Faridpur Zone":"Faridpur","Feni Zone":"Feni","Gazipur Zone":"Gazipur","Gulshan Zone":"Dhaka","Hobiganj Zone":"Habiganj","Jamalpur Zone":"Jamalpur","Jatrabari Zone":"Dhaka","Jessore Zone":"Jessore","Jhalokathi Zone":"Jhalokati","Jhenaidah Zone":"Jhenaidah","Keraniganj Zone":"Dhaka","Khagrachori Zone":"Khagrachhari","Khulna Zone":"Khulna","Kishoreganj Zone":"Kishoreganj","Kustia Zone":"Kushtia","Lakshmipur Zone":"Lakshmipur","Madaripur Zone":"Madaripur","Malibag Zone":"Dhaka","Manikganj Zone":"Manikganj","Mawna Zone":"Gazipur","Mirpur Zone":"Dhaka","Moulvibazar Zone":"Maulvibazar","Munshiganj Zone":"Munshiganj","Mymensingh Zone":"Mymensingh","Naogaon Zone":"Naogaon","Narayanganj Zone":"Narayanganj","Narsingdi Zone":"Narsingdi","Netrokona Zone":"Netrakona","Noakhali Zone":"Noakhali","Pabna Zone":"Pabna","Panchagarh Zone":"Panchagarh","Patuakhali Zone":"Patuakhali","Rajshahi Zone":"Rajshahi","Rangpur Zone":"Rangpur","Satkania Zone":"Chittagong","Satkhira Zone":"Satkhira","Savar Zone":"Dhaka","Shitakunda Zone":"Chittagong","Sirajganj Zone":"Sirajganj","Sonargaon Zone":"Narayanganj","Sunamganj Zone":"Sunamganj","Sylhet Zone":"Sylhet","Tangail Zone":"Tangail","Tongi Zone":"Gazipur","Uttara Zone":"Dhaka"};
     const zmap={};zones.forEach(z=>zmap[z.name]=z);
@@ -272,6 +157,18 @@ tr:nth-child(even) td { background:#FAFAFB; }
     L.geoJSON(window.BD_GEO,{style:f=>{const zs=byD[f.properties.d];if(!zs)return{color:'#fff',weight:.5,fillColor:'#C9D2DC',fillOpacity:.5};const z=zs.reduce((b,x)=>(zmap[x].a>zmap[b].a?x:b),zs[0]);return{color:'#fff',weight:.8,fillColor:health(zmap[z].ach).c,fillOpacity:.85};},onEachFeature:(f,l)=>{const zs=byD[f.properties.d];if(!zs)return;const z=zs.reduce((b,x)=>(zmap[x].a>zmap[b].a?x:b),zs[0]);l.bindTooltip('<b>'+z+'</b><br>Ach '+(zmap[z].ach==null?'—':zmap[z].ach.toFixed(1)+'%'),{sticky:true});}}).addTo(m);
     setTimeout(()=>m.invalidateSize(),100);
   }
+
+  // sidebar anchor navigation
+  document.querySelectorAll('.nav-item[data-sec]').forEach(n=>{
+    n.addEventListener('click',()=>{
+      document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+      n.classList.add('active');
+      const el=document.getElementById(n.getAttribute('data-sec'));
+      if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+      if(window.innerWidth<=900) document.getElementById('sidebar').classList.remove('open');
+    });
+  });
+  document.getElementById('menuToggle').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
 })();
 </script>
 </body>
