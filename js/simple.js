@@ -72,8 +72,8 @@
         kpi('MoM Growth', (lastMom == null ? '—' : (lastMom >= 0 ? '+' : '') + lastMom.toFixed(1) + '%'), M[Upto] + ' vs ' + M[Upto - 1], lastMom == null ? '' : lastMom >= 0 ? PAL.green : PAL.red) +
       '</div>' +
       '<div class="grid grid-2 mb18">' +
-        '<div class="card"><div class="card-title">Monthly Target vs Achievement</div><div class="chart-box md"><canvas id="cYtd"></canvas></div></div>' +
-        '<div class="card"><div class="card-title">Month-over-Month Growth</div><div class="chart-box md"><canvas id="cMom"></canvas></div></div>' +
+        '<div class="card"><div class="card-title">Chart 1 — Monthly Target vs Achievement</div><div class="chart-box md"><canvas id="cYtd"></canvas></div></div>' +
+        '<div class="card"><div class="card-title">Chart 2 — Month-over-Month Growth</div><div class="chart-box md"><canvas id="cMom"></canvas></div></div>' +
       '</div>' +
       '<div class="card"><div class="card-title">Month Comparison</div>' +
       tbl(['Month', 'Target', 'Actual', 'Achievement %', 'Gap', 'MoM Change'], labels.map((l, i) => [l, 'BDT ' + FMT.money(series[i].t), 'BDT ' + FMT.money(series[i].a), series[i].t > 0 ? (series[i].a / series[i].t * 100).toFixed(1) + '%' : '—', 'BDT ' + FMT.money(series[i].t - series[i].a), mom[i] == null ? '—' : '<span class="' + (mom[i] >= 0 ? 'h-healthy' : 'h-critical') + '">' + (mom[i] >= 0 ? '+' : '') + mom[i].toFixed(1) + '%</span>']), [1, 2, 3, 4, 5]) + '</div>';
@@ -213,7 +213,7 @@
     const rate = s => s >= 80 ? ['Sustained Advantage', 'pill-pos'] : s >= 60 ? ['Temporary Advantage', 'pill-warn'] : ['Competitive Parity', 'pill-gray'];
     $('#content').querySelector('[data-view-panel="vrio"]').innerHTML =
       '<div class="section-head"><div><div class="section-title">VRIO Analysis</div><div class="section-desc">Advantage Score = (0.30×V + 0.25×R + 0.25×I + 0.20×O) × 10</div></div></div>' +
-      '<div class="card mb18"><div class="card-title">Advantage Score (0–100)</div><div class="chart-box md"><canvas id="cVrio"></canvas></div></div>' +
+      '<div class="card mb18"><div class="card-title">Chart 3 — VRIO Advantage Score (0–100)</div><div class="chart-box md"><canvas id="cVrio"></canvas></div></div>' +
       '<div class="card"><div class="card-title">VRIO Scorecard</div>' +
       tbl(['Resource / Capability', 'V', 'R', 'I', 'O', 'Score', 'Rating'], ranked.map(d => { const rt = rate(d.s); return ['<b>' + esc(d.name) + '</b>', d.v, d.r, d.i, d.o, '<b>' + d.s.toFixed(1) + '</b>', '<span class="pill ' + rt[1] + '">' + rt[0] + '</span>']; }), [1, 2, 3, 4, 5]) + '</div>';
     mk('cVrio', { type: 'bar', data: { labels: ranked.map(d => d.name), datasets: [{ data: ranked.map(d => +d.s.toFixed(1)), backgroundColor: ranked.map(d => d.s >= 80 ? PAL.green : d.s >= 60 ? PAL.amber : PAL.gray), borderRadius: 4 }] }, options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { min: 0, max: 100, ticks: { callback: v => v } } } } });
