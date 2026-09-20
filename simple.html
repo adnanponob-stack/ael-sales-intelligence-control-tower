@@ -23,8 +23,10 @@
       </div>
     </div>
     <nav class="nav" id="nav">
+      <a class="nav-item active" data-view="summary"><span class="nav-num">00</span> Executive Summary</a>
+
       <div class="nav-group">Performance</div>
-      <a class="nav-item active" data-view="ytd"><span class="nav-num">01</span> YTD Target vs Achievement</a>
+      <a class="nav-item" data-view="ytd"><span class="nav-num">01</span> YTD Target vs Achievement</a>
       <a class="nav-item" data-view="zone"><span class="nav-num">02</span> Zone Comparison</a>
       <a class="nav-item" data-view="territory"><span class="nav-num">03</span> Territory Comparison</a>
       <a class="nav-item" data-view="manpower"><span class="nav-num">04</span> Manpower Efficiency</a>
@@ -59,7 +61,8 @@
     </header>
 
     <main class="content" id="content">
-      <section class="view active" data-view-panel="ytd"></section>
+      <section class="view active" data-view-panel="summary"></section>
+      <section class="view" data-view-panel="ytd"></section>
       <section class="view" data-view-panel="zone"></section>
       <section class="view" data-view-panel="territory"></section>
       <section class="view" data-view-panel="manpower"></section>

@@ -42,7 +42,7 @@
     const tick = t ? '#8CA3B8' : '#5B6B7E'; const grid = t ? '#243140' : '#E3E8EF';
     const dlFmt = cfg.dlFmt; delete cfg.dlFmt;
     cfg.options = Object.assign({ responsive: true, maintainAspectRatio: false, animation: { duration: 200 },
-      plugins: { legend: { labels: { color: tick, font: { size: 11 }, boxWidth: 12, boxHeight: 12, usePointStyle: true } }, tooltip: { backgroundColor: PAL.darkred, titleColor: '#fff', bodyColor: '#fff', padding: 10, cornerRadius: 8 }, datalabels: { display: true, color: tick, font: { size: 9, weight: 'bold' }, anchor: 'end', align: 'end', formatter: dlFmt || ((v) => v == null ? '' : v) } },
+      plugins: { legend: { labels: { color: tick, font: { size: 11 }, boxWidth: 12, boxHeight: 12, usePointStyle: true } }, tooltip: { backgroundColor: PAL.darkred, titleColor: '#fff', bodyColor: '#fff', padding: 10, cornerRadius: 8 }, datalabels: { display: true, color: (t ? '#E5E7EB' : '#1F2937'), font: { size: 10, weight: 'bold' }, anchor: 'end', align: 'end', offset: 2, formatter: dlFmt || ((v) => v == null ? '' : v) } },
       scales: { x: { grid: { color: grid }, ticks: { color: tick, font: { size: 10 } } }, y: { grid: { color: grid }, ticks: { color: tick, font: { size: 10 } } } } }, cfg.options || {});
     charts[id] = new Chart(el.getContext('2d'), cfg);
   }
@@ -53,6 +53,52 @@
   function tbl(headers, rows, alignRight) { return '<div class="table-wrap"><table class="tbl"><thead><tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr></thead><tbody>' + rows.map(r => '<tr class="row">' + r.map((c, i) => '<td class="' + (alignRight && alignRight.includes(i) ? 'num mono' : '') + '">' + c + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>'; }
   function achPct(a) { return a == null ? '—' : a.toFixed(1) + '%'; }
   function achCol(a) { return a == null ? '' : a >= 100 ? 'h-healthy' : a >= 90 ? 'h-watch' : a >= 70 ? 'h-atrisk' : 'h-critical'; }
+
+  /* ---------- 00 EXECUTIVE SUMMARY ---------- */
+  function renderSummary() {
+    const target = ytd.reduce((s, r) => s + r.target, 0), actual = ytd.reduce((s, r) => s + r.actual, 0);
+    const a = ach(target, actual); const gap = target - actual;
+    const zones = aggBy(ytd, r => r.zone).sort((x, y) => y.actual - x.actual);
+    const crit = zones.filter(z => z.a != null && z.a < 70).length;
+    const under = zones.filter(z => z.a != null && z.a < 90).length;
+    const topZone = zones[0];
+    const products = (meta.products || []).slice().sort((x, y) => y.amt - x.amt);
+    const totalSku = products.reduce((s, p) => s + p.amt, 0);
+    const topSku = products[0];
+    let cum = 0, focus = 0; products.forEach(p => { cum += p.amt; if (cum <= totalSku * 0.8) focus++; });
+    const so = meta.activeSalesOfficers || 0, out = meta.activeCustomers || 0;
+
+    $('#content').querySelector('[data-view-panel="summary"]').innerHTML =
+      '<div class="section-head"><div><div class="section-title">Executive Summary</div><div class="section-desc">One-page view for management</div></div></div>' +
+      '<div class="summary-box"><h3>Management Summary</h3>' +
+      '<p>YTD achievement is <strong>' + a.toFixed(1) + '%</strong> with a sales gap of <strong>BDT ' + FMT.money(gap) + '</strong>. ' +
+      '<strong>' + crit + '</strong> zones are critical and <strong>' + under + '</strong> are below the 90% threshold.</p>' +
+      '<p>Coverage is adequate (6-day route), so the gap points to <strong>strike-rate / productivity</strong> and <strong>demand</strong> rather than manpower shortage.</p>' +
+      '<p><strong>' + focus + ' SKUs</strong> drive 80% of value — portfolio is concentrated. Top SKU is <strong>' + esc(topSku ? topSku.sku : '—') + '</strong>.</p>' +
+      '</div>' +
+      '<div class="kpi-grid">' +
+        kpi('YTD Achievement', a.toFixed(1) + '%', '', a < 90 ? PAL.red : PAL.green) +
+        kpi('Sales Gap', 'BDT ' + FMT.money(gap), '', PAL.red) +
+        kpi('Critical Zones', String(crit), '< 70% achievement', PAL.red) +
+        kpi('Top Zone', esc(topZone ? topZone.name : '—'), 'by sales') +
+        kpi('Top SKU', esc(topSku ? topSku.sku : '—'), (totalSku ? (topSku.amt / totalSku * 100).toFixed(0) + '% of value' : '')) +
+        kpi('Outlets / Officer', FMT.num(so ? Math.round(out / so) : 0), 'within 6-day route') +
+      '</div>' +
+      '<div class="grid grid-2">' +
+        '<div class="card"><div class="card-title">Key Findings</div>' +
+          '<div class="detail-row"><span class="lbl">Geographic gap</span><span class="val" style="text-align:left">' + crit + ' critical zones; top 3 zones drive most of the shortfall</span></div>' +
+          '<div class="detail-row"><span class="lbl">Productivity</span><span class="val" style="text-align:left">Coverage adequate but achievement ' + a.toFixed(0) + '% — strike rate to investigate</span></div>' +
+          '<div class="detail-row"><span class="lbl">SKU concentration</span><span class="val" style="text-align:left">' + focus + ' SKUs = 80% of value</span></div>' +
+          '<div class="detail-row"><span class="lbl">Data gap</span><span class="val" style="text-align:left">Competitor price &amp; coverage not available internally</span></div>' +
+        '</div>' +
+        '<div class="card"><div class="card-title">Priority Actions</div>' +
+          '<div class="detail-row"><span class="lbl">1. Research bottom zones</span><span class="val" style="text-align:left">Regional market assessment</span></div>' +
+          '<div class="detail-row"><span class="lbl">2. Strike-rate study</span><span class="val" style="text-align:left">Visits vs orders conversion</span></div>' +
+          '<div class="detail-row"><span class="lbl">3. SKU focus</span><span class="val" style="text-align:left">Protect top 10, review bottom 20</span></div>' +
+          '<div class="detail-row"><span class="lbl">4. Fix target-setting</span><span class="val" style="text-align:left">Monthly BDT targets per territory</span></div>' +
+        '</div>' +
+      '</div>';
+  }
 
   /* ---------- 01 YTD ---------- */
   function renderYtd() {
@@ -221,7 +267,7 @@
   }
 
   /* ---------- router ---------- */
-  const renderers = { ytd: renderYtd, zone: renderZone, territory: renderTerritory, manpower: renderManpower, sku: renderSku, painpoints: renderPainPoints, initiatives: renderInitiatives, strategy: renderStrategy, vrio: renderVrio };
+  const renderers = { summary: renderSummary, ytd: renderYtd, zone: renderZone, territory: renderTerritory, manpower: renderManpower, sku: renderSku, painpoints: renderPainPoints, initiatives: renderInitiatives, strategy: renderStrategy, vrio: renderVrio };
   function renderView(v) {
     $$('.nav-item').forEach(n => n.classList.toggle('active', n.getAttribute('data-view') === v));
     $$('.view').forEach(x => x.classList.toggle('active', x.getAttribute('data-view-panel') === v));
@@ -234,7 +280,7 @@
     $('#updatedValue').textContent = meta.lastSync || '—';
     $$('.nav-item').forEach(n => n.addEventListener('click', () => renderView(n.getAttribute('data-view'))));
     $('#menuToggle').addEventListener('click', () => $('#sidebar').classList.toggle('open'));
-    renderView('ytd');
+    renderView('summary');
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
