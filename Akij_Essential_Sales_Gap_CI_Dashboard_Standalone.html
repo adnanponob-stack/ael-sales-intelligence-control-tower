@@ -512,11 +512,13 @@ html { scroll-behavior:smooth; }
       <a class="nav-item" data-sec="sec13"><span class="nav-num">13</span> Business Health Heat Map</a>
       <a class="nav-item" data-sec="sec14"><span class="nav-num">14</span> Bangladesh Summary</a>
       <a class="nav-item" data-sec="sec15"><span class="nav-num">15</span> Customer Intelligence</a>
-      <a class="nav-item" data-sec="sec16"><span class="nav-num">16</span> Data Quality &amp; Methodology</a>
       <div class="nav-group">Strategy</div>
-      <a class="nav-item" data-sec="sec17"><span class="nav-num">17</span> Resources &amp; Capabilities</a>
-      <a class="nav-item" data-sec="sec18"><span class="nav-num">18</span> Competitive Advantage</a>
-      <a class="nav-item" data-sec="sec19"><span class="nav-num">19</span> VRIO Analysis</a>
+      <a class="nav-item" data-sec="sec16"><span class="nav-num">16</span> Resources &amp; Capabilities</a>
+      <a class="nav-item" data-sec="sec17"><span class="nav-num">17</span> Competitive Advantage</a>
+      <a class="nav-item" data-sec="sec18"><span class="nav-num">18</span> VRIO Analysis</a>
+      <a class="nav-item" data-sec="sec19"><span class="nav-num">19</span> Competitive Intelligence — Next Steps</a>
+      <div class="nav-group">Governance</div>
+      <a class="nav-item" data-sec="sec20"><span class="nav-num">20</span> Data Quality &amp; Methodology</a>
     </nav>
     <div class="sidebar-foot"><div class="foot-credits">Akij Essential Ltd (Consumer) &middot; CI</div></div>
   </aside>
@@ -617,7 +619,7 @@ window.BD_GEO = {"type":"FeatureCollection","features":[{"type":"Feature","prope
   function heatmap(){return sec('sec13','Business Health — Heat Map','Zone achievement (colour-coded)','<div class="legend"><span><span class="dot" style="background:#16845B"></span>Healthy ≥90%</span><span><span class="dot" style="background:#D99A00"></span>Watch 70–90%</span><span><span class="dot" style="background:#C83E4D"></span>Critical <70%</span><span><span class="dot" style="background:#A9B4C0"></span>No data</span></div><div class="heat">'+zones.map(z=>'<div class="heat-cell" style="background:'+health(z.ach).c+'"><div class="z">'+esc(z.name)+'</div><div class="a">'+(z.ach==null?'—':z.ach.toFixed(1)+'%')+' · '+money(z.a)+'</div></div>').join('')+'</div>');}
   function bdMap(){return sec('sec14','Bangladesh — Executive Summary by Zone','Geographic health','<div class="map-wrap"><div id="bdmap" class="map-box"></div><div class="card" style="flex:0 0 300px"><div class="card-title">Zone Health</div>'+table(['Zone','Ach %','Health'],zones.slice(0,15).map(z=>['<b>'+esc(z.name)+'</b>',(z.ach==null?'—':z.ach.toFixed(1)+'%'),hpill(z.ach)]),[1])+'</div></div>');}
   function customer(){return sec('sec15','Customer Intelligence — Customer Target vs Sales (MT)','Active outlets & distributors by month','<div class="kpi-grid">'+kpi('Active Outlets',out.toLocaleString('en-IN'))+kpi('Sales / Outlet','BDT '+money(out?natA/out:0))+kpi('Outlets / Officer',String(so?Math.round(out/so):0))+'</div><div class="grid grid-2"><div class="card"><div class="card-title">Active Outlets (month)</div><div class="chart-box md" style="height:240px"><canvas id="c3"></canvas></div></div><div class="card"><div class="card-title">Distributor Count &amp; MoM Change</div><div class="chart-box md" style="height:240px"><canvas id="c4"></canvas></div></div></div><div class="card" style="margin-top:14px"><div class="card-title">Distributor Change Rate (month-wise)</div>'+table(['Month','Distributors','MoM Change %'],M.slice(0,mdist.length).map((l,i)=>[l,String(mdist[i]||0),dchg[i]==null?'—':'<span class="'+(dchg[i]<0?'h-critical':'h-healthy')+'" style="font-weight:700">'+(dchg[i]>=0?'+':'')+dchg[i].toFixed(1)+'%</span>']),[1,2])+'</div><div class="summary-box" style="margin-top:14px"><p>Customer-level target vs sales (MT) and purchase frequency are <strong>Data Not Available</strong> in the current source.</p></div>');}
-  function dq(){const total=rows.length;const dupes=total-new Set(rows.map(r=>r.sr+'|'+r.zone+'|'+r.mi)).size;const zt=rows.filter(r=>r.target===0).length;const jan=rows.filter(r=>r.mi===0).reduce((s,r)=>s+r.actual,0)<1e7;return sec('sec16','Data Quality & Methodology','Validation, definitions, limitations','<div class="card"><div class="card-title">Data Quality</div>'+table(['Check','Status'],[['Records',total.toLocaleString('en-IN')],['Duplicate SR-zone-month',dupes||'None'],['Zero target',zt||'None'],['January data (partial)',jan?'Flagged':'OK'],['National = Σ zones','Reconciled'],['Competitor / route data','Data Not Available']],[1])+'</div><div class="card" style="margin-top:14px"><div class="card-title">Methodology</div><table><tbody><tr><td><b>Source</b></td><td>iBOS RTM (live) — Akij Essential (Consumer) BU 144</td></tr><tr><td><b>Period</b></td><td>Jan 2026 – Till Date (8 complete months)</td></tr><tr><td><b>Achievement</b></td><td>Actual ÷ Target × 100</td></tr><tr><td><b>Health signal</b></td><td>Healthy ≥90% · Watch 70–90% · Critical &lt;70%</td></tr><tr><td><b>Principle</b></td><td>FACT vs FINDING vs HYPOTHESIS vs DATA GAP</td></tr></tbody></table></div>');}
+  function dq(){const total=rows.length;const dupes=total-new Set(rows.map(r=>r.sr+'|'+r.zone+'|'+r.mi)).size;const zt=rows.filter(r=>r.target===0).length;const jan=rows.filter(r=>r.mi===0).reduce((s,r)=>s+r.actual,0)<1e7;return sec('sec20','Data Quality & Methodology','Validation, definitions, limitations','<div class="card"><div class="card-title">Data Quality</div>'+table(['Check','Status'],[['Records',total.toLocaleString('en-IN')],['Duplicate SR-zone-month',dupes||'None'],['Zero target',zt||'None'],['January data (partial)',jan?'Flagged':'OK'],['National = Σ zones','Reconciled'],['Competitor / route data','Data Not Available']],[1])+'</div><div class="card" style="margin-top:14px"><div class="card-title">Methodology</div><table><tbody><tr><td><b>Source</b></td><td>iBOS RTM (live) — Akij Essential (Consumer) BU 144</td></tr><tr><td><b>Period</b></td><td>Jan 2026 – Till Date (8 complete months)</td></tr><tr><td><b>Achievement</b></td><td>Actual ÷ Target × 100</td></tr><tr><td><b>Health signal</b></td><td>Healthy ≥90% · Watch 70–90% · Critical &lt;70%</td></tr><tr><td><b>Principle</b></td><td>FACT vs FINDING vs HYPOTHESIS vs DATA GAP</td></tr></tbody></table></div>');}
   function resources(){
     const groups=[
       ['Physical',[['Distribution network',dist+' distributors · '+out.toLocaleString('en-IN')+' outlets · '+zones.length+' zones'],['Infrastructure','iBOS RTM system & BI dashboards'],['Product portfolio',products.length+' SKUs (staples)']]],
@@ -626,7 +628,7 @@ window.BD_GEO = {"type":"FeatureCollection","features":[{"type":"Feature","prope
       ['Information',[['RTM database','Live sales, target, SKU, distributor data'],['Analytics','BI dashboards, Python ETL, forecasting']]],
       ['Network',[['Distributor relationships',dist+' active distributors'],['Retailer network',out.toLocaleString('en-IN')+' outlets']]]
     ];
-    return sec('sec17','Resources &amp; Capabilities','What the organisation has and what it can do effectively',
+    return sec('sec16','Resources &amp; Capabilities','What the organisation has and what it can do effectively',
       '<div class="grid grid-2">'+groups.map(g=>'<div class="card"><div class="card-title">'+g[0]+' Resources</div><table><tbody>'+g[1].map(r=>'<tr><td style="white-space:nowrap;color:var(--muted)">'+esc(r[0])+'</td><td>'+esc(r[1])+'</td></tr>').join('')+'</tbody></table></div>').join('')+'</div>'+
       '<div class="card" style="margin-top:14px"><div class="card-title">Capabilities</div>'+table(['Capability','Evidence','Strength','Gap','Business Impact'],[
         ['Distribution management',dist+' distributors managed via RTM','<span class="pill pill-pos">Strong</span>','Productivity detail missing','<span class="pill pill-neg">High</span>'],
@@ -644,7 +646,7 @@ window.BD_GEO = {"type":"FeatureCollection","features":[{"type":"Feature","prope
       ['Data & analytics','RTM diagnostics, forecasting','Differentiating if deepened','Emerging','Benchmark vs competitors'],
       ['Commodity scale','Group sourcing','Cost in staples','Utilized','Cost benchmark']
     ];
-    return sec('sec18','Competitive Advantage','Potential sources of advantage from internal evidence','<div class="card">'+table(['Advantage','Evidence','Why it matters','Utilization','Validation needed'],adv.map(a=>['<b>'+esc(a[0])+'</b>',esc(a[1]),esc(a[2]),esc(a[3]),esc(a[4])]),[0])+'</div>');
+    return sec('sec17','Competitive Advantage','Potential sources of advantage from internal evidence','<div class="card">'+table(['Advantage','Evidence','Why it matters','Utilization','Validation needed'],adv.map(a=>['<b>'+esc(a[0])+'</b>',esc(a[1]),esc(a[2]),esc(a[3]),esc(a[4])]),[0])+'</div>');
   }
   function vrio(){
     const d=[
@@ -656,10 +658,21 @@ window.BD_GEO = {"type":"FeatureCollection","features":[{"type":"Feature","prope
       {name:'Sales force',v:'Yes',r:'No',i:'No',o:'Yes',ev:so+' officers',imp:'Parity',pill:'pill-gray'},
       {name:'Geographic reach',v:'Yes',r:'Partially',i:'Partially',o:'Yes',ev:zones.length+' zones',imp:'Temporary / partial',pill:'pill-warn'}
     ];
-    return sec('sec19','VRIO Analysis','V = Valuable · R = Rare · I = Inimitable · O = Organized (evidence-based)','<div class="card"><div class="card-title">VRIO Matrix</div>'+table(['Resource / Capability','V','R','I','O','Evidence','Strategic Implication'],d.map(x=>['<b>'+esc(x.name)+'</b>',x.v,x.r,x.i,x.o,'<span class="muted">'+esc(x.ev)+'</span>','<span class="pill '+x.pill+'">'+x.imp+'</span>']),[1,2,3,4])+'</div><div class="summary-box" style="margin-top:14px"><p><b>Interpretation:</b> V alone → parity · V+R → temporary · V+R+I → unused · V+R+I+O → sustained. <strong>Brand and distribution</strong> show sustained-advantage evidence; <strong>sales force is parity</strong>; R and I are partially inferred (competitor data required to confirm).</p></div>');
+    return sec('sec18','VRIO Analysis','V = Valuable · R = Rare · I = Inimitable · O = Organized (evidence-based)','<div class="card"><div class="card-title">VRIO Matrix</div>'+table(['Resource / Capability','V','R','I','O','Evidence','Strategic Implication'],d.map(x=>['<b>'+esc(x.name)+'</b>',x.v,x.r,x.i,x.o,'<span class="muted">'+esc(x.ev)+'</span>','<span class="pill '+x.pill+'">'+x.imp+'</span>']),[1,2,3,4])+'</div><div class="summary-box" style="margin-top:14px"><p><b>Interpretation:</b> V alone → parity · V+R → temporary · V+R+I → unused · V+R+I+O → sustained. <strong>Brand and distribution</strong> show sustained-advantage evidence; <strong>sales force is parity</strong>; R and I are partially inferred (competitor data required to confirm).</p></div>');
+  }
+  function ciNext(){
+    const steps=[
+      ['1','Competitor landscape','Map top competitors by SKU, price, outlet coverage & share','CI','Immediate'],
+      ['2','Validate VRIO R & I','Test rarity/inimitability of distribution & brand vs rivals','CI / R&I','Immediate'],
+      ['3','Brand & retail audit','Quantify brand pull & SKU availability at shelf','R&I / CI','High'],
+      ['4','Price & promo tracking','Track competitor pricing & trade schemes monthly','CI','High'],
+      ['5','Win/loss & share','Outlet-level win/loss and share-of-shelf tracking','CI / Sales','Medium'],
+      ['6','Competitive war-gaming','Scenario planning on competitor moves','CI / Strategy','Medium']
+    ];
+    return sec('sec19','Competitive Intelligence — Next Steps','What CI should do now that internal strategy (Resources → Advantage → VRIO) is mapped','<div class="card">'+table(['Priority','CI Action','Scope','Owner','Severity'],steps.map(s=>['<b>'+s[0]+'</b>',s[1],s[2],s[3],'<span class="pill '+(s[4]==='Immediate'?'pill-neg':s[4]==='High'?'pill-warn':'pill-info')+'">'+s[4]+'</span>']),[0])+'</div><div class="summary-box" style="margin-top:14px"><p>Strategy analysis shows internal strengths (distribution, brand) but <strong>cannot be validated without external data</strong>. CI therefore shifts from "what are we good at" to <strong>"how durable is that advantage versus competitors"</strong> — starting with competitor mapping and VRIO rarity/inimitability validation.</p></div>');
   }
 
-  document.getElementById('report').innerHTML = execSummary()+national()+zoneInt()+regionInt()+terrGap()+manpower()+employeeGap()+gapDiag()+qboard()+roadmap()+register()+impact()+heatmap()+bdMap()+customer()+dq()+resources()+advantage()+vrio();
+  document.getElementById('report').innerHTML = execSummary()+national()+zoneInt()+regionInt()+terrGap()+manpower()+employeeGap()+gapDiag()+qboard()+roadmap()+register()+impact()+heatmap()+bdMap()+customer()+resources()+advantage()+vrio()+ciNext()+dq();
   document.getElementById('updatedValue').textContent = meta.lastSync || '—';
 
   mk('c1',{type:'bar',data:{labels:['Target','Actual'],datasets:[{data:[natT,natA],backgroundColor:['#A9B4C0','#EE1D24'],borderRadius:6}]},options:{plugins:{legend:{display:false},datalabels:{color:'#0F1E2E',font:{size:12,weight:'bold'},anchor:'end',align:'end',offset:4,formatter:dlFmt}}}});
