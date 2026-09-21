@@ -738,6 +738,7 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
     const topZone=zones.slice().sort((a,b)=>(b.ach||0)-(a.ach||0))[0];
     const topReg=divs.slice().sort((a,b)=>(b.ach||0)-(a.ach||0))[0];
     const topTerr=terrs.slice().sort((a,b)=>(b.ach||0)-(a.ach||0))[0];
+    const topPoint=points.slice().sort((a,b)=>(b.ach||0)-(a.ach||0))[0];
     const topGap=terrs.slice().sort((a,b)=>(b.gap||0)-(a.gap||0)).slice(0,10);
     return sec('sec1','Executive Intelligence','One-page management position',
       '<div class="summary-box"><h3>Executive Intelligence Summary</h3><p>YTD achievement is <strong>'+natAch.toFixed(1)+'%</strong> with a net gap of <strong>BDT '+money(gap)+'</strong> (gross shortfall BDT '+money(gross)+', excess BDT '+money(excess)+').</p><p style="margin-top:6px"><span class="tag">'+crit+' critical zones</span><span class="tag">'+under+' below 90%</span><span class="tag">'+focus+' SKUs = 80% value</span></p></div>'+
@@ -745,7 +746,7 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
       '<div class="card" style="margin-bottom:14px"><div class="card-title">Top Performers (achievement % — 2026 YTD)</div><div class="board">'+
       '<div class="topic"><h4>Top Zone</h4><div class="val">'+esc(topZone.name)+'</div><div class="sig">Achievement '+(topZone.ach||0).toFixed(1)+'%</div><div class="sig">Sales BDT '+money(topZone.a)+'</div></div>'+
       '<div class="topic"><h4>Top Division</h4><div class="val">'+esc(topReg.name)+'</div><div class="sig">Achievement '+(topReg.ach||0).toFixed(1)+'%</div><div class="sig">Sales BDT '+money(topReg.a)+'</div></div>'+
-      '<div class="topic"><h4>Top Point</h4><div class="val">'+esc(topTerr.name)+'</div><div class="sig">Achievement '+(topTerr.ach||0).toFixed(1)+'%</div><div class="sig">Sales BDT '+money(topTerr.a)+'</div></div>'+
+      '<div class="topic"><h4>Top Point</h4><div class="val">'+esc(topPoint.name)+'</div><div class="sig">Achievement '+(topPoint.ach||0).toFixed(1)+'%</div><div class="sig">Sales BDT '+money(topPoint.a)+'</div></div>'+
       '<div class="topic"><h4>Top Employee</h4><div class="val">'+esc(topTerr.name)+'</div><div class="sig">Achievement '+(topTerr.ach||0).toFixed(1)+'%</div><div class="sig">BDT '+money(topTerr.a)+'</div></div>'+
       '</div></div>'+
       '<div class="grid grid-2"><div class="card"><div class="card-title">National YTD — Target vs Sales</div><div class="chart-box" style="height:280px"><canvas id="c1"></canvas></div></div>'+
@@ -828,10 +829,6 @@ function employeeGap(){
     const matrix=[['Sales Officer','Zonal Officer','Point / Section','Sales vs memo target, coverage, strike rate'],['Zonal Officer','DSM','Zone','Zone target, SO productivity, distributor fill'],['DSM','NSM','Region','Region target, market share, team leadership'],['NSM','Head of Sales','National','National target, trade spend, channel policy'],['Head of Sales','CEO / MD','All channels','Revenue, margin, market share, strategy']];
     return sec('sec21','Sales Officer Productivity','Daily performance — SR attendance, IMS (secondary) sales, calls, coverage and role profiles',
       '<div class="kpi-grid">'+kpi('Total Active SR',String(activeSr))+kpi('Total Active Distributor Point',String(activeDist))+kpi('Active Outlets',out.toLocaleString('en-IN'))+kpi('Avg Visit Target / Day',String(avgTgt))+kpi('Avg Visited / Day',String(avgVis))+kpi('Visit Coverage',(cov==null?'':cov.toFixed(1)+'%'))+'</div>'+
-
-      '<div class="grid grid-2" style="margin-top:14px">'+
-      '<div class="card"><div class="card-title">MTD IMS & Primary Sales</div>'+table(['Metric','Target','Sales'],[['MTD IMS (secondary)','—','BDT '+money(mtd.amt)],['MTD Primary','Not Available','Not Available']],[1,2])+'<div class="summary-box" style="margin-top:14px"><p>Primary (company-to-distributor) sales and daily sales targets are <strong>not available in RTM</strong> — RTM covers secondary (outlet) sales only.</p></div></div>'+
-      '</div>'+
 
       '<div class="card" style="margin-top:14px"><div class="card-title">Daily IMS (secondary sales) & Calls — last 8 days</div><div class="chart-box" style="height:240px"><canvas id="c9"></canvas></div></div>'+
       '<div class="grid grid-2" style="margin-top:14px"><div class="card"><div class="card-title">Top 20 Officers — Visit Coverage</div>'+table(['Officer Name','Zone','Point','Daily Outlet Visit Target','Avg Visit %','Last Day Visited Outlets','LPC','Sales/Outlet'],top.map(row),[3,4,5,6,7])+'</div>'+
