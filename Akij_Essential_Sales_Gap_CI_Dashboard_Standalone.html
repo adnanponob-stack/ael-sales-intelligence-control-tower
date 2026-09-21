@@ -516,6 +516,20 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
 .role-card li { font-size: 12px; line-height: 1.55; color: #2a1f1b; margin-bottom: 3px; }
 .role-card .kpi-tag { display: inline-block; background: #eef2f7; color: #2e5b9f; border-radius: 10px; padding: 1px 8px; font-size: 10.5px; font-weight: 700; margin: 1px 2px 1px 0; }
 
+
+/* employee search (feed style) */
+.emp-search-wrap { position: relative; margin-bottom: 8px; }
+.emp-search-wrap input { width: 100%; box-sizing: border-box; padding: 9px 30px 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; color: var(--text); background: #fff; }
+.emp-caret { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; font-size: 12px; }
+.emp-search-results { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px); background: #fff; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 22px rgba(0,0,0,.15); max-height: 300px; overflow-y: auto; }
+.esr-count { padding: 6px 12px; font-size: 11px; color: var(--muted); border-bottom: 1px solid var(--border); }
+.esr-row { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f1ede7; }
+.esr-row:hover { background: #f6efe4; }
+.esr-row:last-child { border-bottom: none; }
+.esr-name { font-size: 12.5px; font-weight: 700; color: var(--text); }
+.esr-meta { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.esr-empty { padding: 12px; font-size: 12px; color: var(--muted); text-align: center; }
+
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
@@ -765,7 +779,23 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
       '<div class="decision-box"><h4>Decision Point</h4><p>'+zoneRows.filter(z=>z.below).length+' zones below 90% point to <strong>manpower coverage / vacancy</strong> as a gap driver. Decide: redeploy officers from over-achieving zones or fill vacancies before adding routes.</p></div>';
     return sec('sec6','Manpower Intelligence','Sales force productivity, coverage & vacancy signals by zone',secHtml);
   }
-function employeeGap(){const srs=terrs.filter(t=>t.ach!=null&&t.ach<70).sort((a,b)=>a.ach-b.ach).slice(0,20);return sec('sec7','Employee / Point Gap Analysis','Lowest-achievement points — flag for area coverage review','<div class="card"><div class="card-title">Lowest Achievement Points</div>'+table(['Point','Zone','Target','Actual','Ach %','Gap'],srs.map(t=>{const z=rows.find(r=>r.sr===t.name);return ['<b>'+esc(t.name)+'</b>',esc(z?z.zone:'—'),'BDT '+money(t.t),'BDT '+money(t.a),'<b style="color:#dc2626">'+(t.ach==null?'—':t.ach.toFixed(1)+'%')+'</b>','BDT '+money(t.gap)];}),[2,3,4,5])+'</div>');}
+function employeeGap(){
+    const emps=terrs.slice().sort((a,b)=>(b.gap||0)-(a.gap||0));
+    const srMonths={}; rows.forEach(r=>{ (srMonths[r.sr]=srMonths[r.sr]||[]); srMonths[r.sr][r.mi]=(srMonths[r.sr][r.mi]||{t:0,a:0}); srMonths[r.sr][r.mi].t+=r.target; srMonths[r.sr][r.mi].a+=r.actual; });
+    const metaBySr={}; rows.forEach(r=>{ metaBySr[r.sr]={zone:r.zone,point:r.point,dsm:r.dsm}; });
+    const areaCov={}; rows.forEach(r=>{ (areaCov[r.zone]=areaCov[r.zone]||{emp:new Set(),t:0,a:0}); const c=areaCov[r.zone]; c.emp.add(r.sr); c.t+=r.target; c.a+=r.actual; });
+    const areaRows=Object.keys(areaCov).map(z=>{const c=areaCov[z];return [z,c.emp.size,'BDT '+money(c.t),'BDT '+money(c.a),'BDT '+money(c.t-c.a),(c.t>0?(c.a/c.t*100).toFixed(1)+'%':'—')];}).sort((a,b)=>(parseFloat(b[4].replace(/[^0-9.-]/g,'')))-(parseFloat(a[4].replace(/[^0-9.-]/g,''))));
+    const tblRows=emps.filter(t=>t.t>0).slice(0,60).map(t=>{const m=metaBySr[t.name]||{};return ['<b>'+esc(t.name)+'</b>',esc(m.zone||'—'),esc(m.point||'—'),esc(m.dsm||'—'),'BDT '+money(t.t),'BDT '+money(t.a),'<b style="color:'+achc(t.ach)+'">'+(t.ach==null?'—':t.ach.toFixed(1)+'%')+'</b>','BDT '+money(t.gap)];});
+    const html='<div class="grid grid-2">'+
+      '<div class="card"><div class="card-title">Employee Chronology (monthly target vs achievement)</div>'+
+      '<div class="emp-search-wrap"><input type="text" id="emp_search" placeholder="Select or search employee…" autocomplete="off" oninput="empSearch()" onfocus="empSearch()" onclick="empOpen()"><span class="emp-caret">▾</span><div class="emp-search-results" id="emp_search_results" style="display:none"></div></div>'+
+      '<div class="chart-box" style="height:260px"><canvas id="c13"></canvas></div><div id="emp_chrono_title" style="font-size:11.5px;color:var(--muted);margin-top:6px"></div></div>'+
+      '<div class="card"><div class="card-title">Top 10 Employee Gap (shortfall BDT)</div><div class="chart-box" style="height:300px"><canvas id="c14"></canvas></div></div></div>'+
+      '<div class="card" style="margin-top:14px"><div class="card-title">Employee Target vs Achievement (sorted by shortfall — priority first)</div>'+table(['Employee','Zone','Point','Division','Target','Sales','Ach %','Shortfall'],tblRows,[4,5,6,7])+'</div>'+
+      '<div class="card" style="margin-top:14px"><div class="card-title">Area Coverage (employee density by zone)</div>'+table(['Zone','Employees','Target','Sales','Gap','Ach %'],areaRows,[1,2,3,4,5])+'</div>'+
+      '<div class="decision-box"><h4>Decision Point</h4><p>Rank employees by shortfall and drill into their month-by-month chronology to separate <strong>persistent under-performance</strong> from <strong>target-allocation pressure</strong>. Assign coaching/redeployment to the top-shortfall reps.</p></div>';
+    return sec('sec7','Employee Gap Analysis','Employee target vs achievement ranked by shortfall, with monthly chronology & area coverage',html);
+  }
   function soProductivity(){
     const sp=window.SO_PROD||{officers:[]};
     const dp=window.DAILY_PROD||{};
@@ -962,6 +992,28 @@ function employeeGap(){const srs=terrs.filter(t=>t.ach!=null&&t.ach<70).sort((a,
     const dl=d.map(x=>x.d.slice(5));
     mk('c9',{type:'line',data:{labels:dl,datasets:[{label:'IMS Sales (BDT)',data:d.map(x=>x.amt),borderColor:'#EE1D24',backgroundColor:'#EE1D24',borderWidth:2.5,pointRadius:4,yAxisID:'y',datalabels:{color:'#0F1E2E',font:{size:9,weight:'bold'},anchor:'end',align:'top',offset:4,formatter:v=>v==null?'':(v/1e7).toFixed(2)+' Cr'}},{label:'Calls',data:d.map(x=>x.calls),borderColor:'#0e7490',backgroundColor:'#0e7490',borderWidth:2,pointRadius:3,yAxisID:'y1',datalabels:{display:false}}]},options:{plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:11}}}},scales:{y:{position:'left',title:{display:true,text:'BDT',font:{size:10}}},y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'Calls',font:{size:10}}}}}});
   }
+  window.empSearch=function(){
+    const input=document.getElementById('emp_search'); const box=document.getElementById('emp_search_results');
+    if(!input||!box) return;
+    const q=(input.value||'').toLowerCase().trim();
+    let list=terrs.slice().sort((a,b)=>(b.gap||0)-(a.gap||0)).filter(t=>t.t>0);
+    if(q){ list=list.filter(t=> (t.name||'').toLowerCase().includes(q)); }
+    const total=list.length; list=list.slice(0,60);
+    box.style.display='block';
+    if(!list.length){ box.innerHTML='<div class="esr-empty">No matching employee</div>'; return; }
+    box.innerHTML='<div class="esr-count">'+total+' employee'+(total===1?'':'s')+(q?' matching “'+esc(input.value)+'”':'')+(total>list.length?' · showing '+list.length:'')+'</div>'+
+      list.map(t=>{const m=metaBySr2[t.name]||{};return '<div class="esr-row" onclick="empChrono2(\''+t.name.replace(/[\\']/g,'')+'\');empSearchSelect(\''+esc(t.name)+'\')"><div class="esr-name">'+esc(t.name)+' <span style="font-weight:400;color:var(--muted)">· '+esc(m.zone||'—')+'</span></div><div class="esr-meta">'+esc(m.point||'—')+' · Ach '+(t.ach==null?'—':t.ach.toFixed(1)+'%')+' · Gap BDT '+money(t.gap)+'</div></div>';}).join('');
+  };
+  window.empOpen=function(){ const input=document.getElementById('emp_search'); if(input){ input.select(); empSearch(); } };
+  window.empSearchSelect=function(name){ const input=document.getElementById('emp_search'); if(input) input.value=name; const box=document.getElementById('emp_search_results'); if(box){ box.style.display='none'; box.innerHTML=''; } };
+  window.empChrono2=function(name){
+    const e=terrs.find(t=>t.name===name); if(!e) return;
+    const title=document.getElementById('emp_chrono_title'); if(title){ const m=metaBySr2[e.name]||{}; title.innerHTML='<b>'+esc(e.name)+'</b> · '+esc(m.zone||'')+' / '+esc(m.point||'')+' / '+esc(m.dsm||'')+' · Ach '+(e.ach==null?'—':e.ach.toFixed(1)+'%')+' · Shortfall BDT '+money(e.gap); }
+    const mo=srMonths2[e.name]||[];
+    const labels=M.slice(0,mo.length);
+    const t=mo.map(x=>x?x.t:0), a=mo.map(x=>x?x.a:0), g=mo.map(x=>x?(x.t-x.a):0);
+    mk('c13',{type:'bar',data:{labels,datasets:[{label:'Target',data:t,backgroundColor:'#aebbd6',borderRadius:2,datalabels:{color:'#475569',font:{size:9,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}},{label:'Sales',data:a,backgroundColor:'#2e5b9f',borderRadius:2,datalabels:{color:'#0F1E2E',font:{size:9,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}},{label:'Gap',data:g,type:'line',yAxisID:'y1',borderColor:'#dc2626',borderWidth:2,pointRadius:3,datalabels:{color:'#dc2626',font:{size:9,weight:'bold'},anchor:'end',align:'top',offset:3,formatter:dlFmt}}]},options:{plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:11}}}},scales:{y:{title:{display:true,text:'BDT',font:{size:10}}},y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'Gap',font:{size:10}}}}}});
+  };
   function initManpower(){
     const zo={}; rows.forEach(r=>{ (zo[r.zone]=zo[r.zone]||new Set()).add(r.sr); });
     const zoneRows=zones.map(z=>({name:z.name,ach:z.ach})).sort((a,b)=>(b.ach||0)-(a.ach||0)).slice(0,10);
@@ -970,8 +1022,18 @@ function employeeGap(){const srs=terrs.filter(t=>t.ach!=null&&t.ach<70).sort((a,
     mk('c10',{type:'doughnut',data:{labels:bands.map(b=>b[0]),datasets:[{data:bands.map(b=>b[2]),backgroundColor:bands.map(b=>b[1]),borderWidth:3,borderColor:'#fff'}]},options:{cutout:'55%',plugins:{legend:{position:'right',labels:{boxWidth:14,font:{size:11},padding:10,generateLabels:function(chart){const d=chart.data.datasets[0].data;const tot=d.reduce((a,b)=>a+b,0);return chart.data.labels.map((l,i)=>({text:l+' · '+d[i]+' ('+(tot?Math.round(d[i]/tot*100):0)+'%)',fillStyle:chart.data.datasets[0].backgroundColor[i],strokeStyle:'#fff',lineWidth:0,index:i}));}},datalabels:{color:'#fff',font:{weight:'800',size:11},anchor:'center',align:'center',formatter:function(v){const d=this.chart.data.datasets[0].data;const tot=d.reduce((a,b)=>a+b,0);return (tot?Math.round(v/tot*100):0)+'%';}}}}}});
     mk('c11',{type:'bar',data:{labels:zoneRows.map(z=>z.name),datasets:[{label:'Ach %',data:zoneRows.map(z=>z.ach==null?0:+z.ach.toFixed(1)),backgroundColor:zoneRows.map(z=>z.ach==null?'#9ca3af':z.ach>=100?'#16a34a':z.ach>=90?'#0e9f6e':z.ach>=80?'#d97706':'#dc2626'),borderRadius:2,datalabels:{color:'#0F1E2E',font:{size:9,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:v=>v+'%'}}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grace:'10%',grid:{color:'#eef1f6'},ticks:{font:{size:10}}}}}});
   }
+  let srMonths2={}, metaBySr2={};
+  function initEmployee(){
+    const emps=terrs.slice().sort((a,b)=>(b.gap||0)-(a.gap||0));
+    srMonths2={}; rows.forEach(r=>{ (srMonths2[r.sr]=srMonths2[r.sr]||[]); srMonths2[r.sr][r.mi]=(srMonths2[r.sr][r.mi]||{t:0,a:0}); srMonths2[r.sr][r.mi].t+=r.target; srMonths2[r.sr][r.mi].a+=r.actual; });
+    metaBySr2={}; rows.forEach(r=>{ metaBySr2[r.sr]={zone:r.zone,point:r.point,dsm:r.dsm}; });
+    const topGap=emps.filter(t=>t.t>0).slice(0,10);
+    mk('c14',{type:'bar',data:{labels:topGap.map(t=>t.name.split(' ').slice(0,2).join(' ')),datasets:[{label:'Shortfall (BDT)',data:topGap.map(t=>Math.max(0,t.gap)),backgroundColor:'#dc2626',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:9,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grace:'10%',grid:{color:'#eef1f6'},ticks:{font:{size:10}}}}}});
+    if(topGap.length){ const emp=topGap[0].name; empChrono2(emp); const input=document.getElementById('emp_search'); if(input) input.value=emp; }
+  }
   function initPage(id){
     if(id==='sec1'){ mk('c1',{type:'bar',data:{labels,datasets:[{label:'Target',data:labels.map((_,i)=>series[i].t),backgroundColor:'#aebbd6',borderRadius:3,datalabels:{color:'#475569',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}},{label:'Sales',data:labels.map((_,i)=>series[i].a),backgroundColor:'#2e5b9f',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}}]}}); const zShort=zones.slice().sort((a,b)=>(b.gap||0)-(a.gap||0)).slice(0,12); mk('c5',{type:'bar',data:{labels:zShort.map(z=>z.name),datasets:[{label:'Shortfall',data:zShort.map(z=>z.gap>0?z.gap:0),backgroundColor:'#dc2626',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:9,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}},{label:'Excess',data:zShort.map(z=>z.gap<0?-z.gap:0),backgroundColor:'#16a34a',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:9,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}}]},options:{plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:11}}},datalabels:{display:false}},scales:{x:{ticks:{font:{size:8},maxRotation:60,minRotation:45}}}}}); }    if(id==='sec6') initManpower();
+    if(id==='sec7') initEmployee();
     if(id==='sec2') mk('c2',{type:'bar',data:{labels,datasets:[{label:'Target',data:labels.map((_,i)=>series[i].t),backgroundColor:'#A9B4C0',borderRadius:3,datalabels:{color:'#5B6B7E',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}},{label:'Actual',data:labels.map((_,i)=>series[i].a),backgroundColor:'#EE1D24',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:10.5,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}}]}});
     if(id==='sec15'){ mk('c3',{type:'line',data:{labels:M.slice(0,9),datasets:[{label:'Active Outlets',data:M.slice(0,9).map((_,i)=>mc[i]||0),borderColor:'#EE1D24',backgroundColor:'#EE1D24',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#EE1D24'}]},options:{plugins:{legend:{display:false},datalabels:{color:'#0F1E2E',font:{size:10.5,weight:'bold'},anchor:'end',align:'top',offset:6,formatter:v=>v==null?'':Number(v).toLocaleString('en-IN')}}}}); mk('c4',{type:'bar',data:{labels:M.slice(0,mdist.length),datasets:[{label:'Distributors',data:mdist.map(v=>v||0),backgroundColor:'#A9B4C0',borderRadius:3,yAxisID:'y',datalabels:{color:'#5B6B7E',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:v=>v==null?'':String(v)}},{type:'line',label:'MoM Change %',data:dchg.map(v=>v==null?null:Math.round(v*10)/10),borderColor:'#EE1D24',backgroundColor:'#EE1D24',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#EE1D24',yAxisID:'y1',datalabels:{color:'#0F1E2E',font:{size:10,weight:'bold'},anchor:'end',align:'top',offset:5,formatter:v=>v==null?'':(v>=0?'+':'')+v.toFixed(1)+'%'}}]},options:{plugins:{legend:{display:false},datalabels:{display:false}},scales:{y:{position:'left',title:{display:true,text:'Distributors',font:{size:10}}},y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'MoM Change %',font:{size:10}}}}}}); }
     if(id==='sec14') initMap();
