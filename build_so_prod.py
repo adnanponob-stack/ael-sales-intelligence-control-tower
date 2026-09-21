@@ -1,28 +1,22 @@
 #!/usr/bin/env python3
-"""One-off: fetch Sales Officer (SO) daily productivity from RTM and dump JSON."""
+"""Rebuild so_prod.json: active SR only, with officer name, ZM/DSM/NSM, last-day visited outlets."""
 import os, json, time, urllib.request
 
 MCP_URL = "https://arl-mcp.ibos.io/mcp"
-TOOL_NAME = "ExecuteRtmQueryAsync"
 START = "2026-01-01"
 BU = 144
 
 def api_key():
-    k = os.environ.get("RTM_MCP_API_KEY")
-    if k:
-        return k.strip()
-    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "rtm_key.txt")
-    with open(p, encoding="utf-8") as f:
-        return f.read().strip()
+    return open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "rtm_key.txt"),
+                encoding="utf-8").read().strip()
 
-def rtm(sql, limit=200):
+def call(tool, args):
     payload = {"jsonrpc": "2.0", "id": int(time.time()*1000) % 100000,
-               "method": "tools/call",
-               "params": {"name": TOOL_NAME, "arguments": {"sqlQuery": sql, "limit": limit}}}
+               "method": "tools/call", "params": {"name": tool, "arguments": args}}
     req = urllib.request.Request(MCP_URL, data=json.dumps(payload).encode(),
         headers={"Content-Type": "application/json", "Accept": "application/json, text/event-stream",
                  "X-API-Key": api_key(), "User-Agent": "AEL/1.0"}, method="POST")
-    with urllib.request.urlopen(req, timeout=180) as r:
+    with urllib.request.urlopen(req, timeout=240) as r:
         data = json.loads(r.read().decode())
     if data.get("error"):
         raise RuntimeError(data["error"])
@@ -44,11 +38,8 @@ def rtm(sql, limit=200):
             rows.append(cells)
     return header, rows
 
-def dicts(header, rows):
-    out = []
-    for r in rows:
-        out.append({header[i]: r[i] if i < len(r) else None for i in range(len(header))})
-    return out
+def dicts(h, r):
+    return [{h[i]: (r[i] if i < len(r) else None) for i in range(len(h))} for r in r]
 
 def num(v):
     if v is None:
@@ -61,27 +52,12 @@ def num(v):
     except ValueError:
         return 0.0
 
-# ---- national daily series (last ~90 days) ----
-SQL_DAILY = """
-SELECT d, COUNT(DISTINCT so) so, SUM(tgt) tgt, SUM(vis) vis, SUM(calls) calls, SUM(amt) amt
-FROM (
-  SELECT intActionBy so, CONVERT(date,dteDeliveryDate) d,
-         MAX(intTotalOutlet) tgt,
-         COUNT(DISTINCT intOutletId) vis,
-         COUNT(*) calls,
-         SUM(numTotalDeliveryAmount) amt
-  FROM rtm.tblOutletDeliveryHeader WITH (NOLOCK)
-  WHERE intBusinessUnitId={bu} AND dteDeliveryDate>='{start}' AND intActionBy IS NOT NULL
-  GROUP BY intActionBy, CONVERT(date,dteDeliveryDate)
-) x GROUP BY d ORDER BY d DESC
-""".format(bu=BU, start=START)
-
-# ---- per-SO header aggregates (paginated by hash of intActionBy) ----
+# per-SO aggregate
 SQL_SO = """
-SELECT intActionBy, MAX(strTerritoryName) terr, COUNT(DISTINCT d) days,
-       SUM(tgt) tgt, SUM(vis) vis, SUM(calls) calls, SUM(amt) amt
+SELECT intActionBy, MAX(strTerritoryName) terr, MAX(dteDeliveryDate) lastDate,
+       COUNT(DISTINCT d) days, SUM(tgt) tgt, SUM(vis) vis, SUM(calls) calls, SUM(amt) amt
 FROM (
-  SELECT intActionBy, strTerritoryName, CONVERT(date,dteDeliveryDate) d,
+  SELECT intActionBy, strTerritoryName, dteDeliveryDate, CONVERT(date,dteDeliveryDate) d,
          MAX(intTotalOutlet) tgt,
          COUNT(DISTINCT intOutletId) vis,
          COUNT(*) calls,
@@ -89,21 +65,25 @@ FROM (
   FROM rtm.tblOutletDeliveryHeader WITH (NOLOCK)
   WHERE intBusinessUnitId={bu} AND dteDeliveryDate>='{start}' AND intActionBy IS NOT NULL
     AND ABS(CAST(HASHBYTES('MD5', ISNULL(CONVERT(varchar,intActionBy),'')) AS INT)) % {buckets} = {bucket}
-  GROUP BY intActionBy, strTerritoryName, CONVERT(date,dteDeliveryDate)
+  GROUP BY intActionBy, strTerritoryName, dteDeliveryDate, CONVERT(date,dteDeliveryDate)
 ) x GROUP BY intActionBy
 """
 
-# ---- national daily line count ----
-SQL_DAILY_LINES = """
-SELECT CONVERT(date,h.dteDeliveryDate) d, COUNT(*) lines
-FROM rtm.tblOutletDeliveryRow r WITH (NOLOCK)
-JOIN rtm.tblOutletDeliveryHeader h WITH (NOLOCK) ON r.intDeliveryId = h.intDeliveryId
-WHERE h.intBusinessUnitId={bu} AND h.dteDeliveryDate>='{start}'
-GROUP BY CONVERT(date,h.dteDeliveryDate)
-ORDER BY CONVERT(date,h.dteDeliveryDate) DESC
+# last-day distinct outlets visited per officer
+SQL_LAST_VIS = """
+SELECT x.intActionBy, COUNT(DISTINCT x.intOutletId) lastVis
+FROM rtm.tblOutletDeliveryHeader x WITH (NOLOCK)
+JOIN (
+  SELECT intActionBy, MAX(CONVERT(date,dteDeliveryDate)) md
+  FROM rtm.tblOutletDeliveryHeader WITH (NOLOCK)
+  WHERE intBusinessUnitId={bu} AND dteDeliveryDate>='{start}' AND intActionBy IS NOT NULL
+    AND ABS(CAST(HASHBYTES('MD5', ISNULL(CONVERT(varchar,intActionBy),'')) AS INT)) % {buckets} = {bucket}
+  GROUP BY intActionBy
+) m ON m.intActionBy = x.intActionBy AND CONVERT(date,x.dteDeliveryDate) = m.md
+WHERE x.intBusinessUnitId={bu} AND x.dteDeliveryDate>='{start}'
+GROUP BY x.intActionBy
 """
 
-# ---- per-SO line count (lines per call = delivery rows) paginated ----
 SQL_LINES = """
 SELECT h.intActionBy, COUNT(*) lines
 FROM rtm.tblOutletDeliveryRow r WITH (NOLOCK)
@@ -113,50 +93,150 @@ WHERE h.intBusinessUnitId={bu} AND h.dteDeliveryDate>='{start}' AND h.intActionB
 GROUP BY h.intActionBy
 """
 
+SR_SET = {"Sales Representative", "Market Developer", "Territory Officer",
+          "Territory Sales Officer", "Territory Sales Manager"}
+ZM_SET = {"Zonal Sales Manager", "Area Manager", "Regional Manager", "Regional Sales Manager", "Territory Manager"}
+DSM_SET = {"Divisional Sales Manager"}
+DSM_FALLBACK = {"Manager", "Senior Manager", "Deputy Manager", "Assistant General Manager"}
+NSM_SET = {"Head of Sales", "General Manager", "National Sales Manager",
+           "Chief Operating Officer", "Head of Channel Development & Operation", "Chief Business Officer"}
+
 def main():
-    k = api_key()
-    print("daily...")
-    h, r = rtm(SQL_DAILY, limit=200)
-    daily = []
-    for x in dicts(h, r):
-        daily.append({"d": x["d"], "so": int(num(x["so"])), "tgt": int(num(x["tgt"])),
-                      "vis": int(num(x["vis"])), "calls": int(num(x["calls"])),
-                      "amt": round(num(x["amt"]))})
-    daily.reverse()
-    print("  %d days" % len(daily))
-
-    h2, r2 = rtm(SQL_DAILY_LINES.format(bu=BU, start=START), limit=200)
-    lines_by_d = {x["d"]: int(num(x["lines"])) for x in dicts(h2, r2)}
-    for x in daily:
-        x["lines"] = lines_by_d.get(x["d"], 0)
-    print("  daily lines merged")
-
     B = 8
     officers = {}
     for b in range(B):
-        h, r = rtm(SQL_SO.format(bu=BU, start=START, buckets=B, bucket=b), limit=200)
+        h, r = call("ExecuteRtmQueryAsync", {"sqlQuery": SQL_SO.format(bu=BU, start=START, buckets=B, bucket=b), "limit": 200})
         for x in dicts(h, r):
-            officers[int(num(x["intActionBy"]))] = {
+            aid = int(num(x["intActionBy"]))
+            officers[aid] = {
                 "terr": (x["terr"] or "").strip(),
+                "lastDate": (x["lastDate"] or "")[:10],
+                "lastVis": 0,
                 "days": int(num(x["days"])), "tgt": int(num(x["tgt"])),
                 "vis": int(num(x["vis"])), "calls": int(num(x["calls"])),
                 "amt": round(num(x["amt"])), "lines": 0}
-        print("  so bucket %d -> %d" % (b, len(dicts(h, r))))
+    print("SO count:", len(officers))
 
     for b in range(B):
-        h, r = rtm(SQL_LINES.format(bu=BU, start=START, buckets=B, bucket=b), limit=200)
+        h, r = call("ExecuteRtmQueryAsync", {"sqlQuery": SQL_LAST_VIS.format(bu=BU, start=START, buckets=B, bucket=b), "limit": 200})
+        for x in dicts(h, r):
+            aid = int(num(x["intActionBy"]))
+            if aid in officers:
+                officers[aid]["lastVis"] = int(num(x["lastVis"]))
+        print("lastVis bucket", b)
+
+    for b in range(B):
+        h, r = call("ExecuteRtmQueryAsync", {"sqlQuery": SQL_LINES.format(bu=BU, start=START, buckets=B, bucket=b), "limit": 200})
         for x in dicts(h, r):
             aid = int(num(x["intActionBy"]))
             if aid in officers:
                 officers[aid]["lines"] = int(num(x["lines"]))
-        print("  lines bucket %d -> %d" % (b, len(dicts(h, r))))
+        print("lines bucket", b)
 
-    so_list = sorted(officers.values(), key=lambda o: -o["amt"])
-    out = {"daily": daily, "officers": so_list, "lastSync": time.strftime("%Y-%m-%d")}
-    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "so_prod.json"),
-              "w", encoding="utf-8") as f:
+    # ---- resolve PeopleDesk: only the officer IDs we have ----
+    aids = sorted(officers.keys())
+    emps = {}   # id -> {nm, desig, lm, sup, active, bu}
+    for i in range(0, len(aids), 100):
+        chunk = aids[i:i+100]
+        inlist = ",".join(str(a) for a in chunk)
+        q = ("SELECT e.intEmployeeBasicInfoId id, e.strEmployeeName nm, d.strDesignation desig, "
+             "e.intLineManagerId lm, e.intSupervisorId sup, e.isActive act, e.intBusinessUnitId bu "
+             "FROM saas.empEmployeeBasicInfo e WITH (NOLOCK) "
+             "LEFT JOIN saas.masterDesignation d WITH (NOLOCK) ON d.intDesignationId=e.intDesignationId "
+             "WHERE e.intEmployeeBasicInfoId IN (" + inlist + ")")
+        h, r = call("ExecutePeopleDeskQueryAsync", {"query": q, "maxRows": 200})
+        for x in dicts(h, r):
+            emps[int(num(x["id"]))] = {
+                "nm": (x["nm"] or "").strip(), "desig": (x["desig"] or "").strip(),
+                "lm": int(num(x["lm"])) if x["lm"] else None,
+                "sup": int(num(x["sup"])) if x["sup"] else None,
+                "act": str(x["act"]).strip().lower() == "true",
+                "bu": int(num(x["bu"]))}
+        print("people chunk", i, len(chunk), "matched", len(dicts(h, r)))
+
+    # ---- manager chain (pull all managers too) ----
+    allids = set(emps.keys())
+    for e in list(emps.values()):
+        if e.get("lm"):
+            allids.add(e["lm"])
+        if e.get("sup"):
+            allids.add(e["sup"])
+    def pull_mgr(ids):
+        out = {}
+        ids = sorted(ids)
+        for i in range(0, len(ids), 100):
+            chunk = ids[i:i+100]
+            inlist = ",".join(str(a) for a in chunk)
+            q = ("SELECT e.intEmployeeBasicInfoId id, e.strEmployeeName nm, d.strDesignation desig, "
+                 "e.intLineManagerId lm FROM saas.empEmployeeBasicInfo e WITH (NOLOCK) "
+                 "LEFT JOIN saas.masterDesignation d WITH (NOLOCK) ON d.intDesignationId=e.intDesignationId "
+                 "WHERE e.intEmployeeBasicInfoId IN (" + inlist + ")")
+            h, r = call("ExecutePeopleDeskQueryAsync", {"query": q, "maxRows": 200})
+            for x in dicts(h, r):
+                out[int(num(x["id"]))] = {"nm": (x["nm"] or "").strip(),
+                                          "desig": (x["desig"] or "").strip(),
+                                          "lm": int(num(x["lm"])) if x["lm"] else None}
+        return out
+    mgrs = pull_mgr(allids - set(emps.keys()))
+    # expand chain up to 3 more levels
+    for _ in range(3):
+        more = set()
+        for m in mgrs.values():
+            if m.get("lm") and m["lm"] not in mgrs and m["lm"] not in emps:
+                more.add(m["lm"])
+        if not more:
+            break
+        mgrs.update(pull_mgr(more))
+    print("managers resolved:", len(mgrs))
+
+    def chain(eid):
+        out = []; seen = set(); cur = eid
+        while cur and cur not in seen and len(out) < 8:
+            seen.add(cur)
+            if cur in emps:
+                e = emps[cur]
+            elif cur in mgrs:
+                e = mgrs[cur]
+            else:
+                break
+            out.append(e)
+            cur = e.get("lm")
+        return out
+
+    def resolve(aid):
+        if aid not in emps:
+            return None
+        self_ = emps[aid]
+        if not self_.get("act") or self_["bu"] != BU:
+            return None
+        if self_["desig"] not in SR_SET:
+            return None
+        ch = chain(aid)
+        mgrlist = ch[1:]
+        zm = next((m["nm"] for m in mgrlist if m["desig"] in ZM_SET), "")
+        dsm = next((m["nm"] for m in mgrlist if m["desig"] in DSM_SET), "")
+        if not dsm:
+            dsm = next((m["nm"] for m in mgrlist if m["desig"] in DSM_FALLBACK), "")
+        nsm = next((m["nm"] for m in mgrlist if m["desig"] in NSM_SET), "")
+        return {"name": self_["nm"], "desig": self_["desig"], "zm": zm, "dsm": dsm, "nsm": nsm}
+
+    so_list = []
+    for aid, o in officers.items():
+        r = resolve(aid)
+        if not r:
+            continue
+        o["officer"] = r["name"]
+        o["desig"] = r["desig"]
+        o["zm"] = r["zm"]
+        o["dsm"] = r["dsm"]
+        o["nsm"] = r["nsm"]
+        so_list.append(o)
+
+    so_list.sort(key=lambda o: -o["amt"])
+    out = {"officers": so_list, "lastSync": time.strftime("%Y-%m-%d")}
+    with open("so_prod.json", "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False)
-    print("wrote so_prod.json: %d officers" % len(so_list))
+    print("wrote so_prod.json:", len(so_list), "active SRs")
 
 if __name__ == "__main__":
     main()
