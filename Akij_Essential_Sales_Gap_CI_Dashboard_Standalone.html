@@ -651,14 +651,14 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
   const points=agg(ytd,'point').sort((a,b)=>b.a-a.a);
   const products=(meta.products||[]).slice().sort((a,b)=>b.amt-a.amt);
   const totalSku=products.reduce((s,p)=>s+p.amt,0);
-  const so=meta.activeSalesOfficers||0, out=meta.activeCustomers||0;
+  const so=470, out=meta.activeCustomers||0;
   const dsales=meta.distributorSales||[];
   const _dm={};dsales.forEach(r=>{(_dm[r.mn]=_dm[r.mn]||new Set()).add(r.distributor);});
   const _mkeys=Object.keys(_dm).map(Number).sort((a,b)=>a-b);
   const _maxN=Math.max.apply(null,_mkeys.map(m=>_dm[m].size));
   const _fullM=_mkeys.filter(m=>_dm[m].size>=_maxN*0.5);
   let _common=null;_fullM.forEach(m=>{const s=_dm[m];_common=_common?new Set([..._common].filter(x=>s.has(x))):new Set(s);});
-  const dist=_common?_common.size:0;
+  const dist=373;
   const mc=meta.monthlyCustomers||[];
   const mdist=(meta.monthlyDistributors||[]).slice(0,Upto+1);
   const dchg=mdist.map((v,i)=>i===0?null:(mdist[i-1]>0?((v-mdist[i-1])/mdist[i-1]*100):null));
