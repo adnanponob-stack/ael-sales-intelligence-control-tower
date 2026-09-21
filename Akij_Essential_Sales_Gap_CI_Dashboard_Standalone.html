@@ -319,6 +319,47 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
 .summary-box strong { color: #fff; }
 .summary-tags { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
 .summary-tags .st { background: rgba(255,255,255,.1); padding: 3px 10px; border-radius: 20px; font-size: 11px; }
+.summary .tag { display: inline-block; background: rgba(255,255,255,.18); border-radius: 12px; padding: 2px 10px; font-size: 11px; margin-right: 6px; }
+
+/* KPI color top borders (feed style) */
+.kpi.c-blue { border-top: 3px solid #2e5b9f; }
+.kpi.c-green { border-top: 3px solid #16a34a; }
+.kpi.c-teal { border-top: 3px solid #0e9f6e; }
+.kpi.c-amber { border-top: 3px solid #d97706; }
+.kpi.c-red { border-top: 3px solid #dc2626; }
+.kpi .delta { font-size: 11px; margin-top: 4px; font-weight: 600; color: var(--muted); }
+.kpi .delta.pos { color: #16a34a; }
+.kpi .delta.neg { color: #dc2626; }
+
+/* exec totals (feed style) */
+.exec-totals { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.et-item { flex: 1; min-width: 130px; border-radius: 10px; padding: 10px 14px; border: 1px solid var(--border); background: #faf6ef; }
+.et-item .et-label { display: block; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); margin-bottom: 3px; }
+.et-item .et-val { font-size: 19px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.et-red { border-left: 4px solid #dc2626; } .et-red .et-val { color: #dc2626; }
+.et-green { border-left: 4px solid #16a34a; } .et-green .et-val { color: #16a34a; }
+.et-net { border-left: 4px solid #7b1e1e; } .et-net .et-val { color: #2a1f1b; }
+
+/* board + topic (feed style) */
+.board { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.topic { border-radius: 12px; padding: 14px; border: 1px solid var(--border); border-left: 5px solid #7b1e1e; background: #fffdf7; }
+.topic h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); font-weight: 800; margin-bottom: 4px; }
+.topic .val { font-size: 15px; font-weight: 800; color: #2a1f1b; }
+.topic .sig { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+/* intel card (feed style) */
+.intel-card { background: #fffdf7; border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; border-left: 4px solid #a03a2a; }
+.intel-card h4 { font-size: 13px; font-weight: 700; color: #7b1e1e; margin-bottom: 5px; }
+.intel-card .sig { font-size: 12px; color: var(--muted); }
+
+/* badges (feed style) */
+.badge { display: inline-block; padding: 2px 9px; border-radius: 11px; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+.b-green { background: #e6f6f0; color: #16a34a; }
+.b-red { background: #fdecea; color: #dc2626; }
+.b-amber { background: #fdf3e0; color: #d97706; }
+.b-blue { background: #eef2f7; color: #2e5b9f; }
+.b-grey { background: #eef0f3; color: #6b7280; }
+.b-teal { background: #e6f6f0; color: #0e9f6e; }
 
 /* signal cards */
 .signal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
@@ -612,13 +653,30 @@ window.BD_GEO = {"type":"FeatureCollection","features":[{"type":"Feature","prope
   const dlFmt=v=>v==null||isNaN(v)?'':(Math.abs(v)>=1e7?(v/1e7).toFixed(1)+' Cr':Math.abs(v)>=1e5?(v/1e5).toFixed(1)+' L':Math.abs(v)>=1e3?(v/1e3).toFixed(1)+' K':String(Math.round(v)));
   function mk(id,cfg){if(typeof Chart==='undefined')return;if(charts[id]){try{charts[id].destroy();}catch(e){}}const el=document.getElementById(id);if(!el)return;cfg.options=Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11}}},datalabels:{display:true,color:'#0F1E2E',font:{size:11,weight:'bold'},anchor:'end',align:'end',formatter:dlFmt}},scales:{x:{grid:{color:'#E3E8EF'}},y:{grid:{color:'#E3E8EF'}}}},cfg.options||{});charts[id]=new Chart(el.getContext('2d'),cfg);}
 
+  function kpiC(label,value,cls,deltaTxt,deltaCls){return '<div class="kpi '+(cls||'c-blue')+'"><div class="kpi-label">'+label+'</div><div class="kpi-value">'+value+'</div>'+(deltaTxt?'<div class="delta '+(deltaCls||'')+'">'+deltaTxt+'</div>':'')+'</div>';}
   function execSummary(){
     const g3=(()=>{let r=0,p=0;for(let i=Upto;i>Upto-3&&i>=0;i--)r+=series[i].a;for(let i=Upto-3;i>Upto-6&&i>=0;i--)p+=series[i].a;return p>0?((r-p)/p)*100:null;})();
-    return sec('sec1','Executive Intelligence Summary','One-page management position',
-      '<div class="kpi-grid">'+kpi('Actual Sales','BDT '+money(natA))+kpi('Target','BDT '+money(natT))+kpi('Achievement %',natAch.toFixed(1)+'%','',natAch<90?'#dc2626':'#16a34a')+kpi('Sales Gap','BDT '+money(gap),'', '#dc2626')+kpi('3M Growth',g3==null?'—':(g3>=0?'+':'')+g3.toFixed(1)+'%')+kpi('Critical Zones',String(crit),'','#dc2626')+kpi('Distributor MoM',dChgLatest==null?'—':(dChgLatest>=0?'+':'')+dChgLatest.toFixed(1)+'%','',dChgLatest<0?'#dc2626':'#16a34a')+kpi('Active Outlets',out.toLocaleString('en-IN'))+'</div>'+
-      '<div class="summary-box" style="margin:14px 0"><p>YTD achievement is <strong>'+natAch.toFixed(1)+'%</strong> with a gap of <strong>BDT '+money(gap)+'</strong>. <strong>'+crit+'</strong> zones are Critical, <strong>'+under+'</strong> below 90%. Coverage is adequate (6-day route), so the gap points to <strong>strike-rate / productivity</strong> and <strong>demand</strong> rather than manpower shortage.</p></div>'+
-      '<div class="grid grid-2"><div class="card"><div class="card-title">Target vs Actual (YTD)</div><div class="chart-box" style="height:220px"><canvas id="c1"></canvas></div></div>'+
-      '<div class="card"><div class="card-title">Business Health — Executive View</div>'+table(['Dimension','Status'],[['Sales performance',hpill(natAch)],['Geographic','<span class="pill pill-warn">'+under+' zones below 90%</span>'],['Distribution',(dChgLatest==null?'<span class="pill pill-gray">No data</span>':'<span class="pill '+(dChgLatest<0?'pill-neg':'pill-pos')+'">'+dLatest+' dist · '+(dChgLatest>=0?'+':'')+dChgLatest.toFixed(1)+'% MoM</span>')],['Manpower','<span class="pill pill-pos">Coverage adequate</span>'],['Product','<span class="pill pill-warn">'+focus+' SKUs = 80% value</span>']],[])+'</div></div>');
+    let gross=0, excess=0; zones.forEach(z=>{ if(z.gap>0) gross+=z.gap; else excess+=-z.gap; });
+    const topZone=zones.slice().sort((a,b)=>(b.ach||0)-(a.ach||0))[0];
+    const topReg=divs.slice().sort((a,b)=>(b.ach||0)-(a.ach||0))[0];
+    const topTerr=terrs.slice().sort((a,b)=>(b.ach||0)-(a.ach||0))[0];
+    const topGap=terrs.slice().sort((a,b)=>(b.gap||0)-(a.gap||0)).slice(0,10);
+    return sec('sec1','Executive Intelligence','One-page management position',
+      '<div class="summary-box"><h3>Executive Intelligence Summary</h3><p>YTD achievement is <strong>'+natAch.toFixed(1)+'%</strong> with a net gap of <strong>BDT '+money(gap)+'</strong> (gross shortfall BDT '+money(gross)+', excess BDT '+money(excess)+').</p><p style="margin-top:6px"><span class="tag">'+crit+' critical zones</span><span class="tag">'+under+' below 90%</span><span class="tag">'+focus+' SKUs = 80% value</span></p></div>'+
+      '<div class="kpi-grid" style="margin-bottom:14px">'+kpiC('YTD Target','BDT '+money(natT),'c-blue','Jan–Aug 2026')+kpiC('YTD Sales','BDT '+money(natA),'c-green')+kpiC('Achievement %',natAch.toFixed(1)+'%','c-teal',natAch>=90?'On track':'Below target',natAch>=90?'pos':'neg')+kpiC('Net Gap','BDT '+money(gap),'c-red','shortfall','neg')+kpiC('Gross Shortfall','BDT '+money(gross),'c-red')+kpiC('3M Growth',g3==null?'—':(g3>=0?'+':'')+g3.toFixed(1)+'%','c-teal')+kpiC('Critical Zones',String(crit),'c-amber',under+' below 90%')+kpiC('Distributor MoM',dChgLatest==null?'—':(dChgLatest>=0?'+':'')+dChgLatest.toFixed(1)+'%','c-amber',dLatest+' active')+kpiC('Active Outlets',out.toLocaleString('en-IN'),'c-green',so+' officers')+'</div>'+
+      '<div class="card" style="margin-bottom:14px"><div class="card-title">Top Performers (achievement % — 2026 YTD)</div><div class="board">'+
+      '<div class="topic"><h4>Top Zone</h4><div class="val">'+esc(topZone.name)+'</div><div class="sig">Achievement '+(topZone.ach||0).toFixed(1)+'%</div><div class="sig">Sales BDT '+money(topZone.a)+'</div></div>'+
+      '<div class="topic"><h4>Top Region</h4><div class="val">'+esc(topReg.name)+'</div><div class="sig">Achievement '+(topReg.ach||0).toFixed(1)+'%</div><div class="sig">Sales BDT '+money(topReg.a)+'</div></div>'+
+      '<div class="topic"><h4>Top Territory</h4><div class="val">'+esc(topTerr.name)+'</div><div class="sig">Achievement '+(topTerr.ach||0).toFixed(1)+'%</div><div class="sig">Sales BDT '+money(topTerr.a)+'</div></div>'+
+      '<div class="topic"><h4>Top Employee</h4><div class="val">'+esc(topTerr.name)+'</div><div class="sig">Achievement '+(topTerr.ach||0).toFixed(1)+'%</div><div class="sig">BDT '+money(topTerr.a)+'</div></div>'+
+      '</div></div>'+
+      '<div class="grid grid-2"><div class="card"><div class="card-title">National YTD — Target vs Sales</div><div class="chart-box" style="height:280px"><canvas id="c1"></canvas></div></div>'+
+      '<div class="card"><div class="card-title">Gross Shortfall vs Excess by Zone</div><div class="exec-totals"><div class="et-item et-red"><span class="et-label">Total Shortfall</span><span class="et-val">BDT '+money(gross)+'</span></div><div class="et-item et-green"><span class="et-label">Total Excess</span><span class="et-val">BDT '+money(excess)+'</span></div><div class="et-item et-net"><span class="et-label">Net Gap</span><span class="et-val">BDT '+money(gap)+'</span></div></div><div class="chart-box" style="height:200px"><canvas id="c5"></canvas></div></div></div>'+
+      '<div class="grid grid-2" style="margin-top:14px"><div class="card"><div class="card-title">Top Gap Territories (priority order)</div>'+table(['Territory','Zone','Shortfall','Ach %','Health'],topGap.map(t=>{const z=rows.find(r=>r.sr===t.name);return ['<b>'+esc(t.name)+'</b>',esc(z?z.zone:'—'),'BDT '+money(t.gap),(t.ach==null?'—':t.ach.toFixed(1)+'%'),hpill(t.ach)];}),[2,3])+'</div>'+
+      '<div class="card"><div class="card-title">CI Research Priorities</div>'+
+      '<div class="intel-card"><h4>Regional Market Assessment</h4><div class="sig">Bottom zones — demand, coverage, competition</div></div>'+
+      '<div class="intel-card" style="border-left-color:#d97706"><h4>Sales Force Productivity Study</h4><div class="sig">Visits vs orders conversion</div></div>'+
+      '<div class="intel-card" style="border-left-color:#dc2626"><h4>Competitor Assessment</h4><div class="sig">Price & availability</div></div></div></div>');
   }
   function national(){return sec('sec2','National Performance','Monthly target vs actual (BDT)','<div class="card"><div class="chart-box"><canvas id="c2"></canvas></div></div><div class="card" style="margin-top:14px">'+table(['Month','Target','Actual','Ach %','Gap'],labels.map((l,i)=>[l,'BDT '+money(series[i].t),'BDT '+money(series[i].a),series[i].t>0?(series[i].a/series[i].t*100).toFixed(1)+'%':'—','BDT '+money(series[i].t-series[i].a)]),[1,2,3,4])+'</div>');}
   function zoneInt(){return sec('sec3','Zone Intelligence','Zone health: target, actual, achievement, gap','<div class="card">'+table(['Zone','Target','Actual','Ach %','Gap','Health'],zones.map(z=>['<b>'+esc(z.name)+'</b>','BDT '+money(z.t),'BDT '+money(z.a),'<b style="color:'+achc(z.ach)+'">'+(z.ach==null?'—':z.ach.toFixed(1)+'%')+'</b>','BDT '+money(z.gap),hpill(z.ach)]),[1,2,3,4])+'</div>');}
@@ -702,7 +760,7 @@ window.BD_GEO = {"type":"FeatureCollection","features":[{"type":"Feature","prope
     setTimeout(()=>_map.invalidateSize(),100);
   }
   function initPage(id){
-    if(id==='sec1') mk('c1',{type:'bar',data:{labels:['Target','Actual'],datasets:[{data:[natT,natA],backgroundColor:['#A9B4C0','#EE1D24'],borderRadius:6}]},options:{plugins:{legend:{display:false},datalabels:{color:'#0F1E2E',font:{size:12,weight:'bold'},anchor:'end',align:'end',offset:4,formatter:dlFmt}}}});
+    if(id==='sec1'){ mk('c1',{type:'bar',data:{labels,datasets:[{label:'Target',data:labels.map((_,i)=>series[i].t),backgroundColor:'#aebbd6',borderRadius:3,datalabels:{color:'#475569',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}},{label:'Sales',data:labels.map((_,i)=>series[i].a),backgroundColor:'#2e5b9f',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}}]}}); const zShort=zones.slice().sort((a,b)=>(b.gap||0)-(a.gap||0)).slice(0,12); mk('c5',{type:'bar',data:{labels:zShort.map(z=>z.name),datasets:[{label:'Shortfall',data:zShort.map(z=>z.gap>0?z.gap:0),backgroundColor:'#dc2626',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:9,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}},{label:'Excess',data:zShort.map(z=>z.gap<0?-z.gap:0),backgroundColor:'#16a34a',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:9,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}}]},options:{plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:11}}},datalabels:{display:false}},scales:{x:{ticks:{font:{size:8},maxRotation:60,minRotation:45}}}}}); }
     if(id==='sec2') mk('c2',{type:'bar',data:{labels,datasets:[{label:'Target',data:labels.map((_,i)=>series[i].t),backgroundColor:'#A9B4C0',borderRadius:3,datalabels:{color:'#5B6B7E',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}},{label:'Actual',data:labels.map((_,i)=>series[i].a),backgroundColor:'#EE1D24',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:10.5,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}}]}});
     if(id==='sec15'){ mk('c3',{type:'line',data:{labels:M.slice(0,9),datasets:[{label:'Active Outlets',data:M.slice(0,9).map((_,i)=>mc[i]||0),borderColor:'#EE1D24',backgroundColor:'#EE1D24',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#EE1D24'}]},options:{plugins:{legend:{display:false},datalabels:{color:'#0F1E2E',font:{size:10.5,weight:'bold'},anchor:'end',align:'top',offset:6,formatter:v=>v==null?'':Number(v).toLocaleString('en-IN')}}}}); mk('c4',{type:'bar',data:{labels:M.slice(0,mdist.length),datasets:[{label:'Distributors',data:mdist.map(v=>v||0),backgroundColor:'#A9B4C0',borderRadius:3,yAxisID:'y',datalabels:{color:'#5B6B7E',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:v=>v==null?'':String(v)}},{type:'line',label:'MoM Change %',data:dchg.map(v=>v==null?null:Math.round(v*10)/10),borderColor:'#EE1D24',backgroundColor:'#EE1D24',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#EE1D24',yAxisID:'y1',datalabels:{color:'#0F1E2E',font:{size:10,weight:'bold'},anchor:'end',align:'top',offset:5,formatter:v=>v==null?'':(v>=0?'+':'')+v.toFixed(1)+'%'}}]},options:{plugins:{legend:{display:false},datalabels:{display:false}},scales:{y:{position:'left',title:{display:true,text:'Distributors',font:{size:10}}},y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'MoM Change %',font:{size:10}}}}}}); }
     if(id==='sec14') initMap();
