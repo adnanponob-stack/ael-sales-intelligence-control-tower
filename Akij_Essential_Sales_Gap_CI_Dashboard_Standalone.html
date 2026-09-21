@@ -531,7 +531,7 @@ html { scroll-behavior:smooth; }
       <div class="topbar-left">
         <button class="icon-btn menu-toggle" id="menuToggle">&#9776;</button>
         <div>
-          <h1 class="topbar-title">Sales Gap &amp; Competitive Intelligence Dashboard</h1>
+          <h1 class="topbar-title" id="pageTitle">Executive Intelligence</h1>
           <div class="topbar-sub">Akij Essential Ltd (Consumer) &middot; Jan 2026 &ndash; Till Date</div>
         </div>
       </div>
@@ -675,35 +675,41 @@ window.BD_GEO = {"type":"FeatureCollection","features":[{"type":"Feature","prope
     return sec('sec19','Competitive Intelligence — Next Steps','What CI should do now that internal strategy (Resources → Advantage → VRIO) is mapped','<div class="card">'+table(['Priority','CI Action','Scope','Owner','Severity'],steps.map(s=>['<b>'+s[0]+'</b>',s[1],s[2],s[3],'<span class="pill '+(s[4]==='Immediate'?'pill-neg':s[4]==='High'?'pill-warn':'pill-info')+'">'+s[4]+'</span>']),[0])+'</div><div class="summary-box" style="margin-top:14px"><p>Strategy analysis shows internal strengths (distribution, brand) but <strong>cannot be validated without external data</strong>. CI therefore shifts from "what are we good at" to <strong>"how durable is that advantage versus competitors"</strong> — starting with competitor mapping and VRIO rarity/inimitability validation.</p></div>');
   }
 
-  document.getElementById('report').innerHTML = execSummary()+national()+zoneInt()+regionInt()+terrGap()+manpower()+employeeGap()+gapDiag()+qboard()+roadmap()+register()+impact()+heatmap()+bdMap()+customer()+resources()+advantage()+vrio()+ciNext()+dq();
-  document.getElementById('updatedValue').textContent = meta.lastSync || '—';
-
-  mk('c1',{type:'bar',data:{labels:['Target','Actual'],datasets:[{data:[natT,natA],backgroundColor:['#A9B4C0','#EE1D24'],borderRadius:6}]},options:{plugins:{legend:{display:false},datalabels:{color:'#0F1E2E',font:{size:12,weight:'bold'},anchor:'end',align:'end',offset:4,formatter:dlFmt}}}});
-  mk('c2',{type:'bar',data:{labels,datasets:[{label:'Target',data:labels.map((_,i)=>series[i].t),backgroundColor:'#A9B4C0',borderRadius:3,datalabels:{color:'#5B6B7E',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}},{label:'Actual',data:labels.map((_,i)=>series[i].a),backgroundColor:'#EE1D24',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:10.5,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}}]}});
-  mk('c3',{type:'line',data:{labels:M.slice(0,9),datasets:[{label:'Active Outlets',data:M.slice(0,9).map((_,i)=>mc[i]||0),borderColor:'#EE1D24',backgroundColor:'#EE1D24',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#EE1D24'}]},options:{plugins:{legend:{display:false},datalabels:{color:'#0F1E2E',font:{size:10.5,weight:'bold'},anchor:'end',align:'top',offset:6,formatter:v=>v==null?'':Number(v).toLocaleString('en-IN')}}}});
-  mk('c4',{type:'bar',data:{labels:M.slice(0,mdist.length),datasets:[{label:'Distributors',data:mdist.map(v=>v||0),backgroundColor:'#A9B4C0',borderRadius:3,yAxisID:'y',datalabels:{color:'#5B6B7E',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:v=>v==null?'':String(v)}},{type:'line',label:'MoM Change %',data:dchg.map(v=>v==null?null:Math.round(v*10)/10),borderColor:'#EE1D24',backgroundColor:'#EE1D24',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#EE1D24',yAxisID:'y1',datalabels:{color:'#0F1E2E',font:{size:10,weight:'bold'},anchor:'end',align:'top',offset:5,formatter:v=>v==null?'':(v>=0?'+':'')+v.toFixed(1)+'%'}}]},options:{plugins:{legend:{display:false},datalabels:{display:false}},scales:{y:{position:'left',title:{display:true,text:'Distributors',font:{size:10}}},y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'MoM Change %',font:{size:10}}}}}});
-
-  if(typeof L!=='undefined' && window.BD_GEO){
+  const PAGE_TITLES = {sec1:'Executive Intelligence',sec2:'National Performance',sec14:'Bangladesh Map',sec3:'Zone Intelligence',sec4:'Region Intelligence',sec5:'Territory Gap',sec6:'Manpower Intelligence',sec7:'Employee Gap Analysis',sec15:'Customer Intelligence',sec8:'Gap Diagnostics',sec9:'MD Business Questions',sec10:'CI Research Roadmap',sec11:'Gap Investigations',sec12:'Business Impact',sec13:'Business Health',sec16:'Resources & Capabilities',sec17:'Competitive Advantage',sec18:'VRIO Analysis',sec19:'CI Next Steps',sec20:'Data Quality & Method'};
+  const BUILD = {sec1:execSummary,sec2:national,sec14:bdMap,sec3:zoneInt,sec4:regionInt,sec5:terrGap,sec6:manpower,sec7:employeeGap,sec15:customer,sec8:gapDiag,sec9:qboard,sec10:roadmap,sec11:register,sec12:impact,sec13:heatmap,sec16:resources,sec17:advantage,sec18:vrio,sec19:ciNext,sec20:dq};
+  let _map=null;
+  function initMap(){
+    if(!(typeof L!=='undefined' && window.BD_GEO)) return;
+    if(_map){ try{_map.remove();}catch(e){} _map=null; }
     const ZD={"Agrabad Zone":"Chittagong","Bagerhat Zone":"Bagerhat","Barishal Zone":"Barisal","Bhola Zone":"Bhola","Bogura Zone":"Bogra","Brahmanbaria Zone":"Brahamanbaria","Chakbazar Zone":"Dhaka","Chandpur Zone":"Chandpur","Chokoria Zone":"Cox'SBazar","Cox's Bazar Zone":"Cox'SBazar","Cumilla North Zone":"Comilla","Cumilla South Zone":"Comilla","Dhanmondi Zone":"Dhaka","Dinajpur Zone":"Dinajpur","Faridpur Zone":"Faridpur","Feni Zone":"Feni","Gazipur Zone":"Gazipur","Gulshan Zone":"Dhaka","Hobiganj Zone":"Habiganj","Jamalpur Zone":"Jamalpur","Jatrabari Zone":"Dhaka","Jessore Zone":"Jessore","Jhalokathi Zone":"Jhalokati","Jhenaidah Zone":"Jhenaidah","Keraniganj Zone":"Dhaka","Khagrachori Zone":"Khagrachhari","Khulna Zone":"Khulna","Kishoreganj Zone":"Kishoreganj","Kustia Zone":"Kushtia","Lakshmipur Zone":"Lakshmipur","Madaripur Zone":"Madaripur","Malibag Zone":"Dhaka","Manikganj Zone":"Manikganj","Mawna Zone":"Gazipur","Mirpur Zone":"Dhaka","Moulvibazar Zone":"Maulvibazar","Munshiganj Zone":"Munshiganj","Mymensingh Zone":"Mymensingh","Naogaon Zone":"Naogaon","Narayanganj Zone":"Narayanganj","Narsingdi Zone":"Narsingdi","Netrokona Zone":"Netrakona","Noakhali Zone":"Noakhali","Pabna Zone":"Pabna","Panchagarh Zone":"Panchagarh","Patuakhali Zone":"Patuakhali","Rajshahi Zone":"Rajshahi","Rangpur Zone":"Rangpur","Satkania Zone":"Chittagong","Satkhira Zone":"Satkhira","Savar Zone":"Dhaka","Shitakunda Zone":"Chittagong","Sirajganj Zone":"Sirajganj","Sonargaon Zone":"Narayanganj","Sunamganj Zone":"Sunamganj","Sylhet Zone":"Sylhet","Tangail Zone":"Tangail","Tongi Zone":"Gazipur","Uttara Zone":"Dhaka"};
     const zmap={};zones.forEach(z=>zmap[z.name]=z);
-    const m=L.map('bdmap',{center:[23.685,90.356],zoom:7,scrollWheelZoom:false,minZoom:7,maxZoom:12});
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OSM &copy; CARTO',subdomains:'abcd',maxZoom:18}).addTo(m);
+    _map=L.map('bdmap',{center:[23.685,90.356],zoom:7,scrollWheelZoom:false,minZoom:7,maxZoom:12});
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OSM &copy; CARTO',subdomains:'abcd',maxZoom:18}).addTo(_map);
     const byD={};Object.keys(zmap).forEach(z=>{const d=ZD[z];if(d)(byD[d]=byD[d]||[]).push(z);});
-    L.geoJSON(window.BD_GEO,{style:f=>{const zs=byD[f.properties.d];if(!zs)return{color:'#fff',weight:.5,fillColor:'#9ca3af',fillOpacity:.5};const z=zs.reduce((b,x)=>(zmap[x].a>zmap[b].a?x:b),zs[0]);return{color:'#fff',weight:.8,fillColor:health(zmap[z].ach).c,fillOpacity:.85};},onEachFeature:(f,l)=>{const zs=byD[f.properties.d];if(!zs)return;const z=zs.reduce((b,x)=>(zmap[x].a>zmap[b].a?x:b),zs[0]);l.bindTooltip('<b>'+z+'</b><br>Ach '+(zmap[z].ach==null?'—':zmap[z].ach.toFixed(1)+'%'),{sticky:true});}}).addTo(m);
-    setTimeout(()=>m.invalidateSize(),100);
+    L.geoJSON(window.BD_GEO,{style:f=>{const zs=byD[f.properties.d];if(!zs)return{color:'#fff',weight:.5,fillColor:'#9ca3af',fillOpacity:.5};const z=zs.reduce((b,x)=>(zmap[x].a>zmap[b].a?x:b),zs[0]);return{color:'#fff',weight:.8,fillColor:health(zmap[z].ach).c,fillOpacity:.85};},onEachFeature:(f,l)=>{const zs=byD[f.properties.d];if(!zs)return;const z=zs.reduce((b,x)=>(zmap[x].a>zmap[b].a?x:b),zs[0]);l.bindTooltip('<b>'+z+'</b><br>Ach '+(zmap[z].ach==null?'—':zmap[z].ach.toFixed(1)+'%'),{sticky:true});}}).addTo(_map);
+    setTimeout(()=>_map.invalidateSize(),100);
   }
-
-  // sidebar anchor navigation
+  function initPage(id){
+    if(id==='sec1') mk('c1',{type:'bar',data:{labels:['Target','Actual'],datasets:[{data:[natT,natA],backgroundColor:['#A9B4C0','#EE1D24'],borderRadius:6}]},options:{plugins:{legend:{display:false},datalabels:{color:'#0F1E2E',font:{size:12,weight:'bold'},anchor:'end',align:'end',offset:4,formatter:dlFmt}}}});
+    if(id==='sec2') mk('c2',{type:'bar',data:{labels,datasets:[{label:'Target',data:labels.map((_,i)=>series[i].t),backgroundColor:'#A9B4C0',borderRadius:3,datalabels:{color:'#5B6B7E',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}},{label:'Actual',data:labels.map((_,i)=>series[i].a),backgroundColor:'#EE1D24',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:10.5,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}}]}});
+    if(id==='sec15'){ mk('c3',{type:'line',data:{labels:M.slice(0,9),datasets:[{label:'Active Outlets',data:M.slice(0,9).map((_,i)=>mc[i]||0),borderColor:'#EE1D24',backgroundColor:'#EE1D24',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#EE1D24'}]},options:{plugins:{legend:{display:false},datalabels:{color:'#0F1E2E',font:{size:10.5,weight:'bold'},anchor:'end',align:'top',offset:6,formatter:v=>v==null?'':Number(v).toLocaleString('en-IN')}}}}); mk('c4',{type:'bar',data:{labels:M.slice(0,mdist.length),datasets:[{label:'Distributors',data:mdist.map(v=>v||0),backgroundColor:'#A9B4C0',borderRadius:3,yAxisID:'y',datalabels:{color:'#5B6B7E',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:v=>v==null?'':String(v)}},{type:'line',label:'MoM Change %',data:dchg.map(v=>v==null?null:Math.round(v*10)/10),borderColor:'#EE1D24',backgroundColor:'#EE1D24',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#EE1D24',yAxisID:'y1',datalabels:{color:'#0F1E2E',font:{size:10,weight:'bold'},anchor:'end',align:'top',offset:5,formatter:v=>v==null?'':(v>=0?'+':'')+v.toFixed(1)+'%'}}]},options:{plugins:{legend:{display:false},datalabels:{display:false}},scales:{y:{position:'left',title:{display:true,text:'Distributors',font:{size:10}}},y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'MoM Change %',font:{size:10}}}}}}); }
+    if(id==='sec14') initMap();
+  }
+  function renderPage(id){
+    document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active', x.getAttribute('data-sec')===id));
+    const b=BUILD[id]; if(!b) return;
+    document.getElementById('report').innerHTML = b();
+    document.getElementById('updatedValue').textContent = meta.lastSync || '—';
+    const tt=document.getElementById('pageTitle'); if(tt) tt.textContent = PAGE_TITLES[id]||'';
+    initPage(id);
+    window.scrollTo({top:0,behavior:'auto'});
+    if(window.innerWidth<=900) document.getElementById('sidebar').classList.remove('open');
+  }
   document.querySelectorAll('.nav-item[data-sec]').forEach(n=>{
-    n.addEventListener('click',()=>{
-      document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
-      n.classList.add('active');
-      const el=document.getElementById(n.getAttribute('data-sec'));
-      if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
-      if(window.innerWidth<=900) document.getElementById('sidebar').classList.remove('open');
-    });
+    n.addEventListener('click',()=>renderPage(n.getAttribute('data-sec')));
   });
   document.getElementById('menuToggle').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
+  renderPage('sec1');
 })();
 </script>
 </body>
