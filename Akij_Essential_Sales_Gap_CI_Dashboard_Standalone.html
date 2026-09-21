@@ -568,6 +568,7 @@ html { scroll-behavior:smooth; }
 .map-svg path.reg:hover { filter:brightness(1.12); stroke-width:2; stroke:#7b1e1e; }
 .map-svg text { font-size:8.5px; font-weight:700; fill:#fff; pointer-events:none; text-anchor:middle; }
 .map-svg .lbl { font-size:13px; font-weight:700; fill:#fff; paint-order:stroke; stroke:#7b1e1e; stroke-width:.7; stroke-linejoin:round; }
+.map-svg .lblv { font-size:10px; font-weight:800; fill:#fff; paint-order:stroke; stroke:#3d0d0d; stroke-width:.7; stroke-linejoin:round; pointer-events:none; text-anchor:middle; }
 .right-stack { display:flex; flex-direction:column; gap:14px; min-width:0; }
 .map-info { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; }
 .map-info h4 { font-size:14px; color:#7b1e1e; margin-bottom:8px; }
@@ -1007,11 +1008,12 @@ function dq(){const total=rows.length;const dupes=total-new Set(rows.map(r=>r.sr
     const lvl=window._mapLevel||'division';
     if(lvl==='division'){
       paths=BD_DIVISIONS.map(d=>{ const a=(dmap[d.ael]||{}).ach; const c=health(a).c; return '<path class="reg" d="'+d.d+'" fill="'+c+'" opacity="0.9"><title>'+esc(d.id)+' — '+esc(d.ael)+' · '+(a==null?'—':a.toFixed(1)+'%')+'</title></path>'; }).join('');
-      labels=BD_DIVISIONS.map(d=>'<text class="lbl" x="'+d.cx+'" y="'+d.cy+'">'+esc(d.id)+'</text>').join('');
+      labels=BD_DIVISIONS.map(d=>{ const a=(dmap[d.ael]||{}).ach; return '<text class="lbl" x="'+d.cx+'" y="'+d.cy+'">'+esc(d.id)+'</text><text class="lblv" x="'+d.cx+'" y="'+(d.cy+14)+'">'+(a==null?'—':a.toFixed(1)+'%')+'</text>'; }).join('');
     } else {
       const zoneByDist={};
       zones.forEach(z=>{ const dist=ZD[z.name]; if(dist) zoneByDist[dist]=z; });
       paths=DISTRICT_MAP.map(d=>{ const z=zoneByDist[d.id]; const a=z?z.ach:null; const c=a==null?'#e8e2d5':health(a).c; const title=z?esc(d.id)+' — '+esc(z.name)+' · '+(a==null?'—':a.toFixed(1)+'%'):esc(d.id); return '<path class="reg" d="'+d.d+'" fill="'+c+'" opacity="0.92" stroke="#fff" stroke-width="0.5"><title>'+title+'</title></path>'; }).join('');
+      labels=DISTRICT_MAP.map(d=>{ const z=zoneByDist[d.id]; const a=z?z.ach:null; if(a==null) return ''; return '<text class="lblv" x="'+d.cx+'" y="'+d.cy+'">'+a.toFixed(1)+'%</text>'; }).join('');
     }
     legend='<span><span class="sw" style="background:#16a34a"></span>≥100%</span><span><span class="sw" style="background:#0e9f6e"></span>90–100%</span><span><span class="sw" style="background:#d97706"></span>80–90%</span><span><span class="sw" style="background:#dc2626"></span>&lt;80%</span> <span style="color:var(--muted)">'+(lvl==='division'?'division':'zone')+' achievement</span>';
     leg.innerHTML=legend;
