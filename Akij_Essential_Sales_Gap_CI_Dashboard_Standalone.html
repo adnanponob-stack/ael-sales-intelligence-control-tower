@@ -766,7 +766,7 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
   function kpiC(label,value,cls,deltaTxt,deltaCls){return '<div class="kpi '+(cls||'c-blue')+'"><div class="kpi-label">'+label+'</div><div class="kpi-value">'+value+'</div>'+(deltaTxt?'<div class="delta '+(deltaCls||'')+'">'+deltaTxt+'</div>':'')+'</div>';}
   function execSummary(){
     const F=window._filters||{};
-    let r=rows;
+    let r=ytd;
     if(F.month!=='' && F.month!=null && F.month!==undefined) r=r.filter(x=>x.mi===Number(F.month));
     if(F.division) r=r.filter(x=>x.dsm===F.division);
     if(F.zone) r=r.filter(x=>x.zone===F.zone);
