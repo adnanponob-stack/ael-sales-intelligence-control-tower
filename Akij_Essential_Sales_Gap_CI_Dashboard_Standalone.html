@@ -593,7 +593,6 @@ html { scroll-behavior:smooth; }
       <a class="nav-item" data-sec="sec19"><span class="bar" style="background:#0e7490"></span><span class="num">19</span><span>CI Next Steps</span></a>
       <div class="nav-sec">Governance</div>
       <a class="nav-item" data-sec="sec20"><span class="bar" style="background:#6b7280"></span><span class="num">20</span><span>Data Quality &amp; Method</span></a>
-      <a class="nav-item" data-sec="sec22"><span class="bar" style="background:#0e7490"></span><span class="num">22</span><span>Daily Performance Report</span></a>
     </nav>
     <div class="sidebar-foot">Analytical model: zone-month detail basis.<br>Facts ≠ signals ≠ hypotheses ≠ causes.<br>No fabricated data &middot; No blame.</div>
   </aside>
@@ -692,8 +691,7 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
     sec18:'VRIO test of resources — brand and distribution show sustained advantage; sales force is at parity.',
     sec19:'CI next steps to validate internal strengths against external competitor data, starting with competitor mapping.',
     sec20:'Data quality checks, definitions and limitations behind every figure in this dashboard.',
-    sec21:'Per-officer daily outlet visit target, visit status, line-per-call and outlet-wise sales per day from live RTM delivery activity.',
-    sec22:'Daily consumer-channel operational snapshot: SR attendance, in-market (secondary) sales, scheduled & productive calls, coverage and month-to-date performance.'
+    sec21:'Per-officer daily outlet visit target, visit status, line-per-call and outlet-wise sales per day from live RTM delivery activity.'
   };
   function sec(id,title,desc,html,sum){return '<section class="report-section" id="'+id+'"><h2>'+title+'</h2><div class="desc">'+desc+'</div>'+(sum||SUMMARIES[id]?'<div class="summary-box"><p>'+(sum||SUMMARIES[id])+'</p></div>':'')+html+'</section>';}
   function kpi(l,v,s,c){return '<div class="kpi"><div class="kpi-accent"></div><div class="kpi-label">'+l+'</div><div class="kpi-value" style="color:'+(c||'')+'">'+v+'</div>'+(s?'<div class="kpi-sub">'+s+'</div>':'')+'</div>';}
@@ -737,26 +735,39 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
   function employeeGap(){const srs=terrs.filter(t=>t.ach!=null&&t.ach<70).sort((a,b)=>a.ach-b.ach).slice(0,20);return sec('sec7','Employee / Point Gap Analysis','Lowest-achievement points — flag for area coverage review','<div class="card"><div class="card-title">Lowest Achievement Points</div>'+table(['Point','Zone','Target','Actual','Ach %','Gap'],srs.map(t=>{const z=rows.find(r=>r.sr===t.name);return ['<b>'+esc(t.name)+'</b>',esc(z?z.zone:'—'),'BDT '+money(t.t),'BDT '+money(t.a),'<b style="color:#dc2626">'+(t.ach==null?'—':t.ach.toFixed(1)+'%')+'</b>','BDT '+money(t.gap)];}),[2,3,4,5])+'</div>');}
   function soProductivity(){
     const sp=window.SO_PROD||{officers:[]};
+    const dp=window.DAILY_PROD||{};
     const offs=sp.officers||[];
     const act=offs.filter(o=>o.days>0 && o.terr && o.tgt>0);
     const tot={days:0,tgt:0,vis:0,calls:0,lines:0,amt:0};
-    let lastTgt=0,lastVis=0;
-    const latest=act.slice().sort((a,b)=>(b.lastDate||'').localeCompare(a.lastDate||''))[0];
     act.forEach(o=>{tot.days+=o.days;tot.tgt+=o.tgt;tot.vis+=o.vis;tot.calls+=o.calls;tot.lines+=o.lines;tot.amt+=o.amt;});
     const cov=tot.tgt>0?(tot.vis/tot.tgt*100):null;
     const lpc=tot.calls>0?(tot.lines/tot.calls):null;
     const perOutletDay=tot.vis>0?(tot.amt/tot.vis):null;
     const avgTgt=tot.days>0?Math.round(tot.tgt/tot.days):0;
     const avgVis=tot.days>0?Math.round(tot.vis/tot.days):0;
-    const lastDayStr=latest?(String(latest.lastDate||'').slice(5)):'';
-    const lastDayTgt=latest?Math.round(latest.tgt/latest.days):0;
-    const lastDayVis=latest?Math.round(latest.vis/latest.days):0;
     const top=act.slice().sort((a,b)=>((b.vis/b.tgt)-(a.vis/a.tgt))).slice(0,20);
     const bottom=act.slice().sort((a,b)=>((a.vis/a.tgt)-(b.vis/b.tgt))).slice(0,20);
     const row=o=>['<b>'+esc(o.officer||o.terr)+'</b>',esc(o.zm||''),esc(o.dsm||''),esc(o.nsm||''),String(Math.round(o.tgt/o.days)),(o.tgt>0?(o.vis/o.tgt*100).toFixed(1)+'%':''),(o.lastDate||'').slice(5),(o.calls>0?(o.lines/o.calls).toFixed(1):''),'BDT '+money(o.vis>0?o.amt/o.vis:0)];
-    return sec('sec21','Sales Officer Productivity','Daily outlet visit target, visit coverage, line per call and outlet-wise sales per day',
-      '<div class="kpi-grid">'+kpi('Active Officers',String(act.length))+kpi('Avg Visit Target / Day',String(avgTgt))+kpi('Avg Visited / Day',String(avgVis))+kpi('Visit Coverage',(cov==null?'':cov.toFixed(1)+'%'))+kpi('Line per Call (LPC)',(lpc==null?'':lpc.toFixed(1)))+kpi('Sales / Outlet / Day','BDT '+money(perOutletDay||0))+'</div>'+
-      '<div class="card" style="margin-bottom:14px"><div class="card-title">Average vs Last Day — Outlet Visit Target &amp; Visited</div><div class="chart-box md" style="height:240px"><canvas id="c6"></canvas></div></div>'+
+
+    const t=dp.today||{}, sr=dp.sr||{}, zsm=dp.zsm||{}, mtd=dp.mtd||{}, covg=dp.coverage||{};
+    const activeSr=meta.activeSalesOfficers||sp.activeSr||0;
+    const activeDist=meta.distributors||0;
+    const schedPct=t.scheduleTarget>0?(t.scheduleAchieve/t.scheduleTarget*100):null;
+    const prodPct=t.calls>0?(t.productive/t.calls*100):null;
+
+    return sec('sec21','Sales Officer Productivity','Daily performance — SR attendance, IMS (secondary) sales, calls and coverage',
+      '<div class="kpi-grid">'+kpi('Active SR',String(activeSr))+kpi('Active Distributor',String(activeDist))+kpi('Active Outlets',out.toLocaleString('en-IN'))+kpi('Avg Visit Target / Day',String(avgTgt))+kpi('Avg Visited / Day',String(avgVis))+kpi('Visit Coverage',(cov==null?'':cov.toFixed(1)+'%'))+'</div>'+
+
+      '<div class="grid grid-3">'+
+      '<div class="card"><div class="card-title">SR Present ('+dp.date+')</div><div class="chart-box" style="height:170px"><canvas id="c8"></canvas></div>'+table(['Metric','Value'],[['Total SR',String(activeSr)],['Present',String(sr.present||0)],['Late',String(sr.late||0)],['Leave',String(sr.leave||0)],['T.ZSM (total)',String(dp.activeZsm||'—')],['T.ZSM Late',String(zsm.late||0)]],[1])+'</div>'+
+      '<div class="card"><div class="card-title">SR IMS Daily Status</div><div class="exec-totals"><div class="et-item et-red"><span class="et-label">Today IMS Sales</span><span class="et-val">BDT '+money(t.amt)+'</span></div><div class="et-item et-green"><span class="et-label">Outlets Visited</span><span class="et-val">'+(t.outlets||0).toLocaleString('en-IN')+'</span></div><div class="et-item et-net"><span class="et-label">Total Calls</span><span class="et-val">'+(t.calls||0).toLocaleString('en-IN')+'</span></div></div>'+table(['Metric','Value'],[['Today IMS (secondary)','BDT '+money(t.amt)],['Active SR Today',String(t.so||0)],['Line per Call (LPC)',(lpc==null?'—':lpc.toFixed(1))]],[1])+'</div>'+
+      '<div class="card"><div class="card-title">Schedule & Productive Call</div>'+table(['Metric','Target','Achieve','%'],[['Schedule Call',(t.scheduleTarget||0).toLocaleString('en-IN'),(t.scheduleAchieve||0).toLocaleString('en-IN'),schedPct==null?'—':schedPct.toFixed(1)+'%'],['Productive Call','—',(t.productive||0).toLocaleString('en-IN'),prodPct==null?'—':prodPct.toFixed(1)+'%']],[1,2,3])+'</div></div>'+
+
+      '<div class="grid grid-2" style="margin-top:14px">'+
+      '<div class="card"><div class="card-title">MTD IMS & Primary Sales</div>'+table(['Metric','Target','Sales'],[['MTD IMS (secondary)','—','BDT '+money(mtd.amt)],['MTD Primary','Not Available','Not Available']],[1,2])+'<div class="summary-box" style="margin-top:14px"><p>Primary (company-to-distributor) sales and daily sales targets are <strong>not available in RTM</strong> — RTM covers secondary (outlet) sales only.</p></div></div>'+
+      '<div class="card"><div class="card-title">Coverage & Vacancy</div>'+table(['Metric','Value'],[['Total DB Point',String(covg.dbPoints||'—')],['Total Active SR',String(activeSr)],['SO Territories',String(covg.soTerritories||'—')],['SR GAP DB Point','—'],['SR / ZSM Vacant','Not Available']],[1])+'<div class="summary-box" style="margin-top:14px"><p>Vacancy (SR/ZSM) requires an authorised-sanction-vs-active headcount plan — <strong>not in RTM</strong>.</p></div></div></div>'+
+
+      '<div class="card" style="margin-top:14px"><div class="card-title">Daily IMS (secondary sales) & Calls — last 8 days</div><div class="chart-box" style="height:240px"><canvas id="c9"></canvas></div></div>'+
       '<div class="grid grid-2" style="margin-top:14px"><div class="card"><div class="card-title">Top 20 Officers — Visit Coverage</div>'+table(['Officer','Zone Manager','DSM','NSM','Daily Target','Avg Visit %','Last Visit','LPC','Sales/Outlet'],top.map(row),[4,5,6,7,8])+'</div>'+
       '<div class="card"><div class="card-title">Bottom 20 Officers — Visit Coverage</div>'+table(['Officer','Zone Manager','DSM','NSM','Daily Target','Avg Visit %','Last Visit','LPC','Sales/Outlet'],bottom.map(row),[4,5,6,7,8])+'</div></div>');
   }
@@ -821,8 +832,8 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
     return sec('sec19','Competitive Intelligence — Next Steps','What CI should do now that internal strategy (Resources → Advantage → VRIO) is mapped','<div class="card">'+table(['Priority','CI Action','Scope','Owner','Severity'],steps.map(s=>['<b>'+s[0]+'</b>',s[1],s[2],s[3],'<span class="pill '+(s[4]==='Immediate'?'pill-neg':s[4]==='High'?'pill-warn':'pill-info')+'">'+s[4]+'</span>']),[0])+'</div><div class="summary-box" style="margin-top:14px"><p>Strategy analysis shows internal strengths (distribution, brand) but <strong>cannot be validated without external data</strong>. CI therefore shifts from "what are we good at" to <strong>"how durable is that advantage versus competitors"</strong> — starting with competitor mapping and VRIO rarity/inimitability validation.</p></div>');
   }
 
-  const PAGE_TITLES = {sec1:'Executive Intelligence',sec2:'National Performance',sec14:'Bangladesh Map',sec3:'Zone Intelligence',sec4:'Division Intelligence',sec5:'Point Gap',sec6:'Manpower Intelligence',sec7:'Employee Gap Analysis',sec15:'Customer Intelligence',sec8:'Gap Diagnostics',sec9:'MD Business Questions',sec10:'CI Research Roadmap',sec11:'Gap Investigations',sec12:'Business Impact',sec13:'Business Health',sec16:'Resources & Capabilities',sec17:'Competitive Advantage',sec18:'VRIO Analysis',sec19:'CI Next Steps',sec20:'Data Quality & Method',sec21:'Sales Officer Productivity',sec22:'Daily Performance Report'};
-  const BUILD = {sec1:execSummary,sec2:national,sec14:bdMap,sec3:zoneInt,sec4:divisionInt,sec5:terrGap,sec6:manpower,sec7:employeeGap,sec21:soProductivity,sec22:dailyReport,sec15:customer,sec8:gapDiag,sec9:qboard,sec10:roadmap,sec11:register,sec12:impact,sec13:heatmap,sec16:resources,sec17:advantage,sec18:vrio,sec19:ciNext,sec20:dq};
+  const PAGE_TITLES = {sec1:'Executive Intelligence',sec2:'National Performance',sec14:'Bangladesh Map',sec3:'Zone Intelligence',sec4:'Division Intelligence',sec5:'Point Gap',sec6:'Manpower Intelligence',sec7:'Employee Gap Analysis',sec15:'Customer Intelligence',sec8:'Gap Diagnostics',sec9:'MD Business Questions',sec10:'CI Research Roadmap',sec11:'Gap Investigations',sec12:'Business Impact',sec13:'Business Health',sec16:'Resources & Capabilities',sec17:'Competitive Advantage',sec18:'VRIO Analysis',sec19:'CI Next Steps',sec20:'Data Quality & Method',sec21:'Sales Officer Productivity'};
+  const BUILD = {sec1:execSummary,sec2:national,sec14:bdMap,sec3:zoneInt,sec4:divisionInt,sec5:terrGap,sec6:manpower,sec7:employeeGap,sec21:soProductivity,sec15:customer,sec8:gapDiag,sec9:qboard,sec10:roadmap,sec11:register,sec12:impact,sec13:heatmap,sec16:resources,sec17:advantage,sec18:vrio,sec19:ciNext,sec20:dq};
   const BD_DIVISIONS = [
     {id:'Chattogram', ael:'Chittagong Division', d:'M225.2,180.6 225.4,178.7 221.9,177.7 208.3,180.6 208.4,190.1 204.2,193.5 203.6,198.7 198.5,205.5 188.5,207.2 185.9,217.8 181.3,222.5 184.2,231.5 178.5,233.9 176.4,239.7 180.9,251.7 175.2,260.4 175.8,266.2 189.5,280.6 191.8,289.2 206.9,312.0 206.7,338.5 212.5,337.3 214.4,332.4 213.8,316.7 211.6,310.2 205.5,304.6 207.3,298.3 203.2,281.7 208.8,286.0 216.0,283.0 226.3,287.3 230.0,283.9 232.5,287.8 237.1,288.0 249.9,304.7 256.2,322.7 266.8,341.8 268.2,351.9 265.6,367.4 266.5,382.7 273.3,383.1 272.8,391.9 277.4,408.4 297.2,440.7 291.3,420.1 291.8,414.7 286.9,408.2 288.0,395.9 292.3,389.1 295.3,389.3 298.4,385.0 304.0,393.9 311.5,393.3 314.2,402.0 320.0,397.7 315.5,381.7 314.4,363.0 317.0,353.5 312.0,334.9 314.2,336.2 314.6,329.3 309.0,290.8 304.7,287.0 304.0,278.6 299.4,274.3 297.5,252.2 300.1,247.6 294.9,234.8 292.7,217.5 290.9,215.1 287.9,221.5 287.7,216.7 284.5,214.4 277.7,221.4 273.9,220.1 271.7,215.2 267.6,217.0 270.4,230.1 269.5,237.6 264.7,237.2 257.8,248.9 259.9,262.8 252.2,271.6 242.9,272.2 239.9,256.6 234.6,250.9 231.6,252.0 232.1,264.7 228.4,262.2 224.2,243.5 215.4,225.2 217.5,220.7 216.3,212.9 220.0,212.2 220.3,199.8 225.4,192.8 223.7,187.2 225.2,180.6Z', cx:249.3, cy:282.5},
     {id:'Dhaka', ael:'Dhaka South Division', d:'M218.9,177.8 216.1,173.2 220.7,170.3 219.8,167.5 221.7,166.1 219.3,159.7 215.2,159.9 220.3,156.1 217.3,148.0 197.3,151.8 192.7,156.0 184.1,158.7 177.8,158.0 177.2,160.4 181.7,163.9 179.8,174.4 175.8,175.0 168.5,170.2 157.2,174.8 153.4,170.7 152.6,158.6 145.5,151.6 143.4,138.6 138.9,136.9 134.9,141.7 131.2,138.8 128.4,139.9 127.0,147.5 117.8,156.7 122.5,190.5 121.9,193.7 116.3,198.0 121.0,206.5 121.5,213.6 111.0,213.1 106.6,209.4 101.7,211.7 95.0,205.0 84.6,202.6 89.5,208.8 88.0,216.5 89.7,219.2 96.2,220.3 101.9,230.1 101.5,233.4 107.3,235.6 107.0,243.8 111.9,250.1 110.4,253.2 118.6,260.2 113.6,262.7 122.8,274.9 124.2,281.8 131.9,283.3 147.5,267.4 151.3,271.6 158.9,272.5 169.7,263.9 174.0,267.6 176.0,266.5 175.2,260.4 180.9,251.7 176.4,239.7 178.5,233.9 184.2,231.5 181.3,222.5 185.9,217.8 188.5,207.2 198.5,205.5 203.6,198.7 204.2,193.5 208.4,190.1 206.8,182.2 218.9,177.8Z', cx:155.7, cy:201.9},
@@ -884,38 +895,17 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
     });
     box.innerHTML=html;
   }
-  function dailyReport(){
-    const dp=window.DAILY_PROD||{};
-    const t=dp.today||{}, sr=dp.sr||{}, zsm=dp.zsm||{}, mtd=dp.mtd||{}, cov=dp.coverage||{};
-    const cr=(v)=>v==null?'':((v/1e7).toFixed(2)+' Cr');
-    const imsAch=t.amt||0;
-    const schedPct=t.scheduleTarget>0?(t.scheduleAchieve/t.scheduleTarget*100):null;
-    const prodPct=t.calls>0?(t.productive/t.calls*100):null;
-    const mtdIms=mtd.amt||0;
-    return sec('sec22','Daily Performance Report','Consumer Channel (Akij Essential) — daily operational snapshot ('+dp.date+')',
-      '<div class="grid grid-3">'+
-      '<div class="card"><div class="card-title">SR Present</div><div class="chart-box" style="height:200px"><canvas id="c8"></canvas></div>'+table(['Metric','Value'],[['Total SR',String(dp.activeSr||'—')],['Present',String(sr.present||0)],['Late',String(sr.late||0)],['Leave',String(sr.leave||0)],['T.ZSM (total)',String(dp.activeZsm||'—')],['T.ZSM Late',String(zsm.late||0)]],[1])+'</div>'+
-      '<div class="card"><div class="card-title">SR IMS Daily Status</div><div class="exec-totals"><div class="et-item et-red"><span class="et-label">Today IMS Sales</span><span class="et-val">BDT '+money(t.amt)+'</span></div><div class="et-item et-green"><span class="et-label">Outlets Visited</span><span class="et-val">'+(t.outlets||0).toLocaleString('en-IN')+'</span></div><div class="et-item et-net"><span class="et-label">Total Calls</span><span class="et-val">'+(t.calls||0).toLocaleString('en-IN')+'</span></div></div>'+table(['Metric','Value'],[['Today IMS (secondary)','BDT '+money(t.amt)],['Achieve %','—'],['Active SR Today',String(t.so||0)]],[1])+'</div>'+
-      '<div class="card"><div class="card-title">Daily Schedule & Productive Call</div>'+table(['Metric','Target','Achieve','%'],[['Schedule Call',(t.scheduleTarget||0).toLocaleString('en-IN'),(t.scheduleAchieve||0).toLocaleString('en-IN'),schedPct==null?'—':schedPct.toFixed(1)+'%'],['Productive Call','—',(t.productive||0).toLocaleString('en-IN'),prodPct==null?'—':prodPct.toFixed(1)+'%']],[1,2,3])+'</div></div>'+
-      '<div class="grid grid-2" style="margin-top:14px">'+
-      '<div class="card"><div class="card-title">MTD IMS & Primary Sales</div>'+table(['Metric','Target','Sales'],[['MTD IMS (secondary)','—','BDT '+money(mtdIms)],['MTD Primary','Not Available','Not Available']],[1,2])+'<div class="summary-box" style="margin-top:14px"><p>Primary (company-to-distributor) sales and daily sales targets are <strong>not available in RTM</strong> — RTM covers secondary (outlet) sales only.</p></div></div>'+
-      '<div class="card"><div class="card-title">Coverage & Vacancy</div>'+table(['Metric','Value'],[['Total DB Point',String(cov.dbPoints||'—')],['Total Active SR',String(dp.activeSr||'—')],['SO Territories',String(cov.soTerritories||'—')],['SR GAP DB Point','—'],['SR / ZSM Vacant','Not Available']],[1])+'<div class="summary-box" style="margin-top:14px"><p>Vacancy (SR/ZSM) requires an authorised-sanction-vs-active headcount plan — <strong>not in RTM</strong>.</p></div></div></div>'+
-      '<div class="card" style="margin-top:14px"><div class="card-title">Daily IMS (secondary sales) — last 8 days</div><div class="chart-box" style="height:260px"><canvas id="c9"></canvas></div></div>');
-  }
   function initSoProd(){
     const sp=window.SO_PROD||{officers:[]};
+    const dp=window.DAILY_PROD||{};
     const offs=(sp.officers||[]).filter(o=>o.days>0&&o.terr&&o.tgt>0);
     const tot={days:0,tgt:0,vis:0}; offs.forEach(o=>{tot.days+=o.days;tot.tgt+=o.tgt;tot.vis+=o.vis;});
     const avgT=tot.days>0?Math.round(tot.tgt/tot.days):0, avgV=tot.days>0?Math.round(tot.vis/tot.days):0;
     const latest=offs.slice().sort((a,b)=>(b.lastDate||'').localeCompare(a.lastDate||''))[0];
     const lastT=latest?Math.round(latest.tgt/latest.days):0, lastV=latest?Math.round(latest.vis/latest.days):0;
     const lastLbl=latest?('Last Day ('+String(latest.lastDate||'').slice(5)+')'):'Last Day';
-    mk('c6',{type:'bar',data:{labels:['Average', lastLbl],datasets:[{label:'Visit Target',data:[avgT,lastT],backgroundColor:'#aebbd6',borderRadius:3,datalabels:{color:'#475569',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2}},{label:'Visited',data:[avgV,lastV],backgroundColor:'#2e5b9f',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2}}]},options:{plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:11}}}},scales:{y:{title:{display:true,text:'Outlets',font:{size:10}}}}}});
-  }
-  function initDaily(){
-    const dp=window.DAILY_PROD||{};
     const sr=dp.sr||{};
-    mk('c8',{type:'bar',data:{labels:['Total SR','Present','Late','Leave'],datasets:[{label:'Count',data:[dp.activeSr||0,sr.present||0,sr.late||0,sr.leave||0],backgroundColor:['#0e7490','#16a34a','#d97706','#dc2626'],borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:11,weight:'bold'},anchor:'end',align:'end',offset:2}}]},options:{plugins:{legend:{display:false}},scales:{y:{title:{display:true,text:'SRs',font:{size:10}}}}}});
+    mk('c8',{type:'bar',data:{labels:['Total SR','Present','Late','Leave'],datasets:[{label:'Count',data:[meta.activeSalesOfficers||0,sr.present||0,sr.late||0,sr.leave||0],backgroundColor:['#0e7490','#16a34a','#d97706','#dc2626'],borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:11,weight:'bold'},anchor:'end',align:'end',offset:2}}]},options:{plugins:{legend:{display:false}},scales:{y:{title:{display:true,text:'SRs',font:{size:10}}}}}});
     const d=(dp.daily||[]).slice(-8);
     const dl=d.map(x=>x.d.slice(5));
     mk('c9',{type:'line',data:{labels:dl,datasets:[{label:'IMS Sales (BDT)',data:d.map(x=>x.amt),borderColor:'#EE1D24',backgroundColor:'#EE1D24',borderWidth:2.5,pointRadius:4,yAxisID:'y',datalabels:{color:'#0F1E2E',font:{size:9,weight:'bold'},anchor:'end',align:'top',offset:4,formatter:v=>v==null?'':(v/1e7).toFixed(2)+' Cr'}},{label:'Calls',data:d.map(x=>x.calls),borderColor:'#0e7490',backgroundColor:'#0e7490',borderWidth:2,pointRadius:3,yAxisID:'y1',datalabels:{display:false}}]},options:{plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:11}}}},scales:{y:{position:'left',title:{display:true,text:'BDT',font:{size:10}}},y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'Calls',font:{size:10}}}}}});
@@ -925,7 +915,6 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
     if(id==='sec15'){ mk('c3',{type:'line',data:{labels:M.slice(0,9),datasets:[{label:'Active Outlets',data:M.slice(0,9).map((_,i)=>mc[i]||0),borderColor:'#EE1D24',backgroundColor:'#EE1D24',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#EE1D24'}]},options:{plugins:{legend:{display:false},datalabels:{color:'#0F1E2E',font:{size:10.5,weight:'bold'},anchor:'end',align:'top',offset:6,formatter:v=>v==null?'':Number(v).toLocaleString('en-IN')}}}}); mk('c4',{type:'bar',data:{labels:M.slice(0,mdist.length),datasets:[{label:'Distributors',data:mdist.map(v=>v||0),backgroundColor:'#A9B4C0',borderRadius:3,yAxisID:'y',datalabels:{color:'#5B6B7E',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:v=>v==null?'':String(v)}},{type:'line',label:'MoM Change %',data:dchg.map(v=>v==null?null:Math.round(v*10)/10),borderColor:'#EE1D24',backgroundColor:'#EE1D24',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#EE1D24',yAxisID:'y1',datalabels:{color:'#0F1E2E',font:{size:10,weight:'bold'},anchor:'end',align:'top',offset:5,formatter:v=>v==null?'':(v>=0?'+':'')+v.toFixed(1)+'%'}}]},options:{plugins:{legend:{display:false},datalabels:{display:false}},scales:{y:{position:'left',title:{display:true,text:'Distributors',font:{size:10}}},y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'MoM Change %',font:{size:10}}}}}}); }
     if(id==='sec14') initMap();
     if(id==='sec21') initSoProd();
-    if(id==='sec22') initDaily();
   }
   function renderPage(id){
     document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active', x.getAttribute('data-sec')===id));
