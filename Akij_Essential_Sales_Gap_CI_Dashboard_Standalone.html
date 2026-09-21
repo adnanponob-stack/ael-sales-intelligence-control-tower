@@ -645,7 +645,7 @@ html { scroll-behavior:smooth; }
         <button class="icon-btn menu-toggle" id="menuToggle">&#9776;</button>
         <div>
           <h1 class="topbar-title" id="pageTitle">Executive Intelligence</h1>
-          <div class="topbar-sub">Akij Essential Ltd (Consumer) &middot; Jan 2026 &ndash; Till Date</div>
+          <div class="topbar-sub">Akij Essential Ltd (Consumer) &middot; Feb 2026 &ndash; Till Date</div>
         </div>
       </div>
       <div class="topbar-right">
@@ -675,8 +675,8 @@ window.SO_PROD = {"officers":[{"terr":"Kallyanpur (SO-3)","zone":"Mirpur Zone","
 window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0,"absent":108,"total":561},"zsm":{"present":28,"late":2,"leave":0,"absent":35,"total":69},"today":{"d":"2026-09-20","amt":11368478,"calls":8430,"outlets":7946,"productive":8430,"so":231,"scheduleTarget":27233,"scheduleAchieve":7946},"mtd":{"amt":164558909,"calls":132063},"coverage":{"dbPoints":437,"soTerritories":628,"activeSr":534},"daily":[{"d":"2026-09-13","amt":11413846,"calls":8284,"outlets":8024,"productive":8284,"so":220,"scheduleTarget":26699,"scheduleAchieve":8024},{"d":"2026-09-14","amt":10295067,"calls":8244,"outlets":8025,"productive":8244,"so":240,"scheduleTarget":26438,"scheduleAchieve":8025},{"d":"2026-09-15","amt":11342756,"calls":8107,"outlets":7818,"productive":8107,"so":235,"scheduleTarget":27778,"scheduleAchieve":7818},{"d":"2026-09-16","amt":9566529,"calls":7681,"outlets":7398,"productive":7681,"so":221,"scheduleTarget":25248,"scheduleAchieve":7398},{"d":"2026-09-17","amt":7426632,"calls":6337,"outlets":6224,"productive":6337,"so":201,"scheduleTarget":22188,"scheduleAchieve":6224},{"d":"2026-09-18","amt":4465239,"calls":3329,"outlets":3141,"productive":3329,"so":75,"scheduleTarget":12393,"scheduleAchieve":3141},{"d":"2026-09-19","amt":9497128,"calls":7779,"outlets":7176,"productive":7779,"so":220,"scheduleTarget":25009,"scheduleAchieve":7176},{"d":"2026-09-20","amt":11368478,"calls":8430,"outlets":7946,"productive":8430,"so":231,"scheduleTarget":27233,"scheduleAchieve":7946}],"activeSr":534,"activeZsm":88};</script>
 <script>
 (function(){
-  const M = AEL_DATA.months, meta = AEL_DATA.meta || {};
-  const rows = AEL_DATA.rows.map(r=>({sr:r[0],zone:r[1],point:r[2],dsm:r[4],mi:r[5],target:r[6],actual:r[7],volume:r[8]}));
+  const M = AEL_DATA.months.slice(1), meta = AEL_DATA.meta || {};
+  const rows = AEL_DATA.rows.filter(r=>r[5]>=1).map(r=>({sr:r[0],zone:r[1],point:r[2],dsm:r[4],mi:r[5]-1,target:r[6],actual:r[7],volume:r[8]}));
   const maxMonth = rows.length ? Math.max.apply(null,rows.map(r=>r.mi)) : 0;
   const Upto = Math.max(0,maxMonth);
   const ytd = rows.filter(r=>r.mi<=Upto);
@@ -725,9 +725,9 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
   const _maxN=Math.max.apply(null,_mkeys.map(m=>_dm[m].size));
   const _fullM=_mkeys.filter(m=>_dm[m].size>=_maxN*0.5);
   let _common=null;_fullM.forEach(m=>{const s=_dm[m];_common=_common?new Set([..._common].filter(x=>s.has(x))):new Set(s);});
-  const dist=373;
-  const mc=meta.monthlyCustomers||[];
-  const mdist=(meta.monthlyDistributors||[]).slice(0,Upto+1);
+  const dist=(meta.distributors&&meta.distributors>0)?meta.distributors:373;
+  const mc=(meta.monthlyCustomers||[]).slice(1);
+  const mdist=(meta.monthlyDistributors||[]).slice(1, Upto+2);
   const dchg=mdist.map((v,i)=>i===0?null:(mdist[i-1]>0?((v-mdist[i-1])/mdist[i-1]*100):null));
   const dLatest=mdist[mdist.length-1]||0;
   const dChgLatest=dchg[dchg.length-1];
@@ -955,7 +955,7 @@ function register(){const reg=[['INV-001','Geographic gap (bottom zones)',crit+'
       '<div class="decision-box"><h4>Decision Point</h4><p>Outlet coverage (145,920) is healthy but customer-level <strong>purchase frequency / target (MT)</strong> is not available in RTM. Decide: commission a retail audit to capture per-outlet demand, or accept zone-level BDT tracking as the primary customer signal.</p></div>';
     return sec('sec15','Customer Intelligence','Outlet coverage, distributors and sales by zone / division / point',html);
   }
-function dq(){const total=rows.length;const dupes=total-new Set(rows.map(r=>r.sr+'|'+r.zone+'|'+r.mi)).size;const zt=rows.filter(r=>r.target===0).length;const jan=rows.filter(r=>r.mi===0).reduce((s,r)=>s+r.actual,0)<1e7;return sec('sec20','Data Quality & Methodology','Validation, definitions, limitations','<div class="card"><div class="card-title">Data Quality Checks</div>'+table(['Check','Result'],[['Records',total.toLocaleString('en-IN')],['Duplicate SR-zone-month',dupes||'None'],['Zero target',zt||'None'],['January data (partial)',jan?'Flagged':'OK'],['National = Σ zones','Reconciled'],['Competitor / route data','Data Not Available']],[1])+'</div><div class="card" style="margin-top:14px"><div class="card-title">Methodology</div>'+table(['Item','Detail'],[['Source','iBOS RTM (live) — Akij Essential (Consumer) BU 144'],['Period','Jan 2026 – Till Date (8 complete months)'],['Achievement','Actual ÷ Target × 100'],['Health signal','Healthy ≥90% · Watch 80–90% · Critical <80%'],['Principle','FACT vs FINDING vs HYPOTHESIS vs DATA GAP']],[0])+'</div>');}
+function dq(){const total=rows.length;const dupes=total-new Set(rows.map(r=>r.sr+'|'+r.zone+'|'+r.mi)).size;const zt=rows.filter(r=>r.target===0).length;const jan=true;return sec('sec20','Data Quality & Methodology','Validation, definitions, limitations','<div class="card"><div class="card-title">Data Quality Checks</div>'+table(['Check','Result'],[['Records',total.toLocaleString('en-IN')],['Duplicate SR-zone-month',dupes||'None'],['Zero target',zt||'None'],['Excluded month','January (go-live)'],['National = Σ zones','Reconciled'],['Competitor / route data','Data Not Available']],[1])+'</div><div class="card" style="margin-top:14px"><div class="card-title">Methodology</div>'+table(['Item','Detail'],[['Source','iBOS RTM (live) — Akij Essential (Consumer) BU 144'],['Period','Feb 2026 – Till Date (7 complete months + Sep till date)'],['Achievement','Actual ÷ Target × 100'],['Health signal','Healthy ≥90% · Watch 80–90% · Critical <80%'],['Principle','FACT vs FINDING vs HYPOTHESIS vs DATA GAP']],[0])+'</div>');}
   function resources(){
     const groups=[
       ['Physical',[['Distribution network',dist+' distributors · '+out.toLocaleString('en-IN')+' outlets · '+zones.length+' zones'],['Infrastructure','iBOS RTM system & BI dashboards'],['Product portfolio',products.length+' SKUs (staples)']]],
