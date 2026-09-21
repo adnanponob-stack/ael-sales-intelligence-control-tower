@@ -943,7 +943,7 @@ function register(){const reg=[['INV-001','Geographic gap (bottom zones)',crit+'
     const zoneRows=zones.map(z=>({name:z.name,pts:zt[z.name]?zt[z.name].size:0,t:z.t,a:z.a,ach:z.ach,gap:z.gap})).sort((a,b)=>b.a-a.a);
     const divRows=divs.map(d=>({name:d.name,t:d.t,a:d.a,ach:d.ach,gap:d.gap})).sort((a,b)=>b.a-a.a);
     const pointRows=points.slice().sort((a,b)=>b.a-a.a).slice(0,30);
-    const kpis='<div class="kpi-grid">'+kpi('Active Outlets',out.toLocaleString('en-IN'))+kpi('Zones',String(zones.length))+kpi('Divisions',String(divs.length))+kpi('Points',String(points.length))+kpi('Total Sales','BDT '+money(natA),'','#16a34a')+kpi('Total Target','BDT '+money(natT),'','#2e5b9f')+'</div>';
+    const kpis='<div class="kpi-grid">'+kpi('Active Outlets',out.toLocaleString('en-IN'))+kpi('Distributors',String(dist))+kpi('Zones',String(zones.length))+kpi('Divisions',String(divs.length))+kpi('Points',String(points.length))+kpi('Total Sales','BDT '+money(natA),'','#16a34a')+kpi('Total Target','BDT '+money(natT),'','#2e5b9f')+'</div>';
     const html=kpis+
       '<div class="grid grid-2"><div class="card"><div class="card-title">Sales vs Target by Month (BDT)</div><div class="chart-box md" style="height:240px"><canvas id="c3"></canvas></div></div>'+
       '<div class="card"><div class="card-title">Sales by Zone (BDT)</div><div class="chart-box md" style="height:240px"><canvas id="c15"></canvas></div></div></div>'+
