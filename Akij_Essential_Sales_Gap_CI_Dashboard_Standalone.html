@@ -674,7 +674,7 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
   const M = AEL_DATA.months, meta = AEL_DATA.meta || {};
   const rows = AEL_DATA.rows.map(r=>({sr:r[0],zone:r[1],point:r[2],dsm:r[4],mi:r[5],target:r[6],actual:r[7],volume:r[8]}));
   const maxMonth = rows.length ? Math.max.apply(null,rows.map(r=>r.mi)) : 0;
-  const Upto = Math.max(0,maxMonth-1);
+  const Upto = Math.max(0,maxMonth);
   const ytd = rows.filter(r=>r.mi<=Upto);
   const ach=(t,a)=>t>0?(a/t)*100:null;
   window._filters={year:'2026',month:'',division:'',zone:'',point:''};
