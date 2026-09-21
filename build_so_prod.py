@@ -52,20 +52,22 @@ def num(v):
     except ValueError:
         return 0.0
 
-# per-SO aggregate
+# per-SO aggregate (+ zone NL7, point NL8)
 SQL_SO = """
-SELECT intActionBy, MAX(strTerritoryName) terr, MAX(dteDeliveryDate) lastDate,
+SELECT intActionBy, MAX(strTerritoryName) terr, MAX(NL7) zone, MAX(NL8) point, MAX(dteDeliveryDate) lastDate,
        COUNT(DISTINCT d) days, SUM(tgt) tgt, SUM(vis) vis, SUM(calls) calls, SUM(amt) amt
 FROM (
-  SELECT intActionBy, strTerritoryName, dteDeliveryDate, CONVERT(date,dteDeliveryDate) d,
-         MAX(intTotalOutlet) tgt,
-         COUNT(DISTINCT intOutletId) vis,
+  SELECT h.intActionBy, h.strTerritoryName, s.NL7, s.NL8, h.dteDeliveryDate, CONVERT(date,h.dteDeliveryDate) d,
+         MAX(h.intTotalOutlet) tgt,
+         COUNT(DISTINCT h.intOutletId) vis,
          COUNT(*) calls,
-         SUM(numTotalDeliveryAmount) amt
-  FROM rtm.tblOutletDeliveryHeader WITH (NOLOCK)
-  WHERE intBusinessUnitId={bu} AND dteDeliveryDate>='{start}' AND intActionBy IS NOT NULL
-    AND ABS(CAST(HASHBYTES('MD5', ISNULL(CONVERT(varchar,intActionBy),'')) AS INT)) % {buckets} = {bucket}
-  GROUP BY intActionBy, strTerritoryName, dteDeliveryDate, CONVERT(date,dteDeliveryDate)
+         SUM(h.numTotalDeliveryAmount) amt
+  FROM rtm.tblOutletDeliveryHeader h WITH (NOLOCK)
+  LEFT JOIN rtm.tblTerritoryInfoSetup s WITH (NOLOCK)
+    ON s.L9 = h.intTerritoryid AND s.intLevelId = 9 AND s.isActive = 1 AND s.L1 = 22600
+  WHERE h.intBusinessUnitId={bu} AND h.dteDeliveryDate>='{start}' AND h.intActionBy IS NOT NULL
+    AND ABS(CAST(HASHBYTES('MD5', ISNULL(CONVERT(varchar,h.intActionBy),'')) AS INT)) % {buckets} = {bucket}
+  GROUP BY h.intActionBy, h.strTerritoryName, s.NL7, s.NL8, h.dteDeliveryDate, CONVERT(date,h.dteDeliveryDate)
 ) x GROUP BY intActionBy
 """
 
@@ -110,6 +112,8 @@ def main():
             aid = int(num(x["intActionBy"]))
             officers[aid] = {
                 "terr": (x["terr"] or "").strip(),
+                "zone": (x["zone"] or "").strip(),
+                "point": (x["point"] or "").strip(),
                 "lastDate": (x["lastDate"] or "")[:10],
                 "lastVis": 0,
                 "days": int(num(x["days"])), "tgt": int(num(x["tgt"])),
