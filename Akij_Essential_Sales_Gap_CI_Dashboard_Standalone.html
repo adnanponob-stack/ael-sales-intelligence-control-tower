@@ -530,6 +530,14 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
 .esr-meta { font-size: 11px; color: var(--muted); margin-top: 1px; }
 .esr-empty { padding: 12px; font-size: 12px; color: var(--muted); text-align: center; }
 
+
+/* slicer bar */
+.slicer-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; }
+.slicer-bar .sl { display: flex; flex-direction: column; gap: 3px; }
+.slicer-bar label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
+.slicer-bar select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 7px; font-size: 12px; color: var(--text); background: #fff; min-width: 120px; cursor: pointer; }
+.slicer-bar select:focus { outline: none; border-color: #7b1e1e; }
+
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
@@ -669,6 +677,7 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
   const Upto = Math.max(0,maxMonth-1);
   const ytd = rows.filter(r=>r.mi<=Upto);
   const ach=(t,a)=>t>0?(a/t)*100:null;
+  window._filters={year:'2026',month:'',division:'',zone:'',point:''};
   const money=v=>{const a=Math.abs(v||0);return a>=1e7?(v/1e7).toFixed(1)+' Cr':a>=1e5?(v/1e5).toFixed(1)+' L':a>=1e3?(v/1e3).toFixed(1)+' K':String(Math.round(v||0));};
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function agg(rs,k){const m=new Map();rs.forEach(r=>{if(!m.has(r[k]))m.set(r[k],{name:r[k],t:0,a:0});const e=m.get(r[k]);e.t+=r.target;e.a+=r.actual;});return Array.from(m.values()).map(e=>({name:e.name,t:e.t,a:e.a,ach:ach(e.t,e.a),gap:e.t-e.a}));}
@@ -733,32 +742,60 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
 
   function kpiC(label,value,cls,deltaTxt,deltaCls){return '<div class="kpi '+(cls||'c-blue')+'"><div class="kpi-label">'+label+'</div><div class="kpi-value">'+value+'</div>'+(deltaTxt?'<div class="delta '+(deltaCls||'')+'">'+deltaTxt+'</div>':'')+'</div>';}
   function execSummary(){
-    const g3=(()=>{let r=0,p=0;for(let i=Upto;i>Upto-3&&i>=0;i--)r+=series[i].a;for(let i=Upto-3;i>Upto-6&&i>=0;i--)p+=series[i].a;return p>0?((r-p)/p)*100:null;})();
-    let gross=0, excess=0; zones.forEach(z=>{ if(z.gap>0) gross+=z.gap; else excess+=-z.gap; });
-    const topZone=zones.slice().sort((a,b)=>(b.ach||0)-(a.ach||0))[0];
-    const topReg=divs.slice().sort((a,b)=>(b.ach||0)-(a.ach||0))[0];
-    const topTerr=terrs.slice().sort((a,b)=>(b.ach||0)-(a.ach||0))[0];
-    const topPoint=points.slice().sort((a,b)=>(b.ach||0)-(a.ach||0))[0];
-    const topGap=terrs.slice().sort((a,b)=>(b.gap||0)-(a.gap||0)).slice(0,10);
+    const F=window._filters||{};
+    let r=rows;
+    if(F.month!=='' && F.month!=null && F.month!==undefined) r=r.filter(x=>x.mi===Number(F.month));
+    if(F.division) r=r.filter(x=>x.dsm===F.division);
+    if(F.zone) r=r.filter(x=>x.zone===F.zone);
+    if(F.point) r=r.filter(x=>x.point===F.point);
+    const _zones=agg(r,'zone').sort((a,b)=>b.a-a.a);
+    const _divs=agg(r,'dsm').sort((a,b)=>b.a-a.a);
+    const _terrs=agg(r,'sr').sort((a,b)=>b.a-a.a);
+    const _points=agg(r,'point').sort((a,b)=>b.a-a.a);
+    const _series=monthly(r);
+    const _natT=r.reduce((a,x)=>a+x.target,0), _natA=r.reduce((a,x)=>a+x.actual,0);
+    const _natAch=ach(_natT,_natA), _gap=_natT-_natA;
+    let _gross=0,_excess=0; _zones.forEach(z=>{ if(z.gap>0)_gross+=z.gap; else _excess+=-z.gap; });
+    const _crit=_zones.filter(z=>z.ach!=null&&z.ach<70).length, _under=_zones.filter(z=>z.ach!=null&&z.ach<90).length;
+    const _topZone=_zones.slice().sort((a,b)=>(b.ach||0)-(a.ach||0))[0];
+    const _topReg=_divs.slice().sort((a,b)=>(b.ach||0)-(a.ach||0))[0];
+    const _topPoint=_points.slice().sort((a,b)=>(b.a||0)-(a.a||0))[0];
+    const _topTerr=_terrs.slice().sort((a,b)=>(b.a||0)-(a.a||0))[0];
+    const _topGap=_terrs.slice().sort((a,b)=>(b.gap||0)-(a.gap||0)).slice(0,10);
+    const g3=(()=>{let r3=0,p3=0;for(let i=Upto;i>Upto-3&&i>=0;i--)r3+=_series[i].a;for(let i=Upto-3;i>Upto-6&&i>=0;i--)p3+=_series[i].a;return p3>0?((r3-p3)/p3)*100:null;})();
+    window._exec={labels:M.slice(0,Upto+1),series:_series,zones:_zones,natT:_natT,natA:_natA,natAch:_natAch,gap:_gap,gross:_gross,excess:_excess,crit:_crit,under:_under};
+    const monthLabel=F.month!==''&&F.month!=null&&F.month!==undefined?M[Number(F.month)]:'All months';
+    const slicerOpts=function(id,vals,cur,label){
+      let o='<option value="">All</option>';
+      vals.forEach(v=>{ o+='<option value="'+esc(v)+'"'+(v===cur?' selected':'')+'>'+esc(v)+'</option>'; });
+      return '<div class="sl"><label>'+label+'</label><select id="'+id+'" onchange="applySlicer()">'+o+'</select></div>';
+    };
+    const divNames=divs.map(d=>d.name).sort();
+    const zoneNames=zones.map(z=>z.name).sort();
+    const pointNames=points.map(p=>p.name).sort();
+    const yearOpt='<div class="sl"><label>Year</label><select id="sl_year" onchange="applySlicer()"><option value="2026"'+(F.year==='2026'?' selected':'')+'>2026</option></select></div>';
+    const monthOpt='<div class="sl"><label>Month</label><select id="sl_month" onchange="applySlicer()"><option value="">All</option>'+M.slice(0,Upto+1).map((m,i)=>'<option value="'+i+'"'+(F.month===''+i||F.month===i?' selected':'')+'>'+m+'</option>').join('')+'</select></div>';
+    const slicer='<div class="slicer-bar">'+yearOpt+monthOpt+slicerOpts('sl_division',divNames,F.division,'Division')+slicerOpts('sl_zone',zoneNames,F.zone,'Zone')+slicerOpts('sl_point',pointNames,F.point,'Point')+'</div>';
     return sec('sec1','Executive Intelligence','One-page management position',
-      '<div class="summary-box"><h3>Executive Intelligence Summary</h3><p>YTD achievement is <strong>'+natAch.toFixed(1)+'%</strong> with a net gap of <strong>BDT '+money(gap)+'</strong> (gross shortfall BDT '+money(gross)+', excess BDT '+money(excess)+').</p><p style="margin-top:6px"><span class="tag">'+crit+' critical zones</span><span class="tag">'+under+' below 90%</span><span class="tag">'+focus+' SKUs = 80% value</span></p></div>'+
-      '<div class="kpi-grid" style="margin-bottom:14px">'+kpiC('YTD Target','BDT '+money(natT),'c-blue','Jan–Aug 2026')+kpiC('YTD Sales','BDT '+money(natA),'c-green')+kpiC('Achievement %',natAch.toFixed(1)+'%','c-teal',natAch>=90?'On track':'Below target',natAch>=90?'pos':'neg')+kpiC('Net Gap','BDT '+money(gap),'c-red','shortfall','neg')+kpiC('Gross Shortfall','BDT '+money(gross),'c-red')+kpiC('3M Growth',g3==null?'—':(g3>=0?'+':'')+g3.toFixed(1)+'%','c-teal')+kpiC('Critical Zones',String(crit),'c-amber',under+' below 90%')+kpiC('Distributor MoM',dChgLatest==null?'—':(dChgLatest>=0?'+':'')+dChgLatest.toFixed(1)+'%','c-amber',dist+' active')+kpiC('Active Outlets',out.toLocaleString('en-IN'),'c-green',so+' officers')+'</div>'+
-      '<div class="card" style="margin-bottom:14px"><div class="card-title">Top Performers (achievement % — 2026 YTD)</div><div class="board">'+
-      '<div class="topic"><h4>Top Zone</h4><div class="val">'+esc(topZone.name)+'</div><div class="sig">Achievement '+(topZone.ach||0).toFixed(1)+'%</div><div class="sig">Sales BDT '+money(topZone.a)+'</div></div>'+
-      '<div class="topic"><h4>Top Division</h4><div class="val">'+esc(topReg.name)+'</div><div class="sig">Achievement '+(topReg.ach||0).toFixed(1)+'%</div><div class="sig">Sales BDT '+money(topReg.a)+'</div></div>'+
-      '<div class="topic"><h4>Top Point</h4><div class="val">'+esc(topPoint.name)+'</div><div class="sig">Achievement '+(topPoint.ach||0).toFixed(1)+'%</div><div class="sig">Sales BDT '+money(topPoint.a)+'</div></div>'+
-      '<div class="topic"><h4>Top Employee</h4><div class="val">'+esc(topTerr.name)+'</div><div class="sig">Achievement '+(topTerr.ach||0).toFixed(1)+'%</div><div class="sig">BDT '+money(topTerr.a)+'</div></div>'+
+      slicer+
+      '<div class="summary-box"><h3>Executive Intelligence Summary ('+monthLabel+')</h3><p>YTD achievement is <strong>'+_natAch.toFixed(1)+'%</strong> with a net gap of <strong>BDT '+money(_gap)+'</strong> (gross shortfall BDT '+money(_gross)+', excess BDT '+money(_excess)+').</p><p style="margin-top:6px"><span class="tag">'+_crit+' critical zones</span><span class="tag">'+_under+' below 90%</span><span class="tag">'+focus+' SKUs = 80% value</span></p></div>'+
+      '<div class="kpi-grid" style="margin-bottom:14px">'+kpiC('YTD Target','BDT '+money(_natT),'c-blue',monthLabel)+kpiC('YTD Sales','BDT '+money(_natA),'c-green')+kpiC('Achievement %',_natAch.toFixed(1)+'%','c-teal',_natAch>=90?'On track':'Below target',_natAch>=90?'pos':'neg')+kpiC('Net Gap','BDT '+money(_gap),'c-red','shortfall','neg')+kpiC('Gross Shortfall','BDT '+money(_gross),'c-red')+kpiC('3M Growth',g3==null?'—':(g3>=0?'+':'')+g3.toFixed(1)+'%','c-teal')+kpiC('Critical Zones',String(_crit),'c-amber',_under+' below 90%')+kpiC('Distributor MoM',dChgLatest==null?'—':(dChgLatest>=0?'+':'')+dChgLatest.toFixed(1)+'%','c-amber',dist+' active')+kpiC('Active Outlets',out.toLocaleString('en-IN'),'c-green',so+' officers')+'</div>'+
+      '<div class="card" style="margin-bottom:14px"><div class="card-title">Top Performers (by sales — 2026 YTD)</div><div class="board">'+
+      '<div class="topic"><h4>Top Zone</h4><div class="val">'+esc(_topZone.name)+'</div><div class="sig">Sales BDT '+money(_topZone.a)+'</div><div class="sig">Achievement '+(_topZone.ach||0).toFixed(1)+'%</div></div>'+
+      '<div class="topic"><h4>Top Division</h4><div class="val">'+esc(_topReg.name)+'</div><div class="sig">Sales BDT '+money(_topReg.a)+'</div><div class="sig">Achievement '+(_topReg.ach||0).toFixed(1)+'%</div></div>'+
+      '<div class="topic"><h4>Top Point</h4><div class="val">'+esc(_topPoint.name)+'</div><div class="sig">Sales BDT '+money(_topPoint.a)+'</div><div class="sig">Achievement '+(_topPoint.ach||0).toFixed(1)+'%</div></div>'+
+      '<div class="topic"><h4>Top Employee</h4><div class="val">'+esc(_topTerr.name)+'</div><div class="sig">Sales BDT '+money(_topTerr.a)+'</div><div class="sig">Achievement '+(_topTerr.ach||0).toFixed(1)+'%</div></div>'+
       '</div></div>'+
       '<div class="grid grid-2"><div class="card"><div class="card-title">National YTD — Target vs Sales</div><div class="chart-box" style="height:280px"><canvas id="c1"></canvas></div></div>'+
-      '<div class="card"><div class="card-title">Gross Shortfall vs Excess by Zone</div><div class="exec-totals"><div class="et-item et-red"><span class="et-label">Total Shortfall</span><span class="et-val">BDT '+money(gross)+'</span></div><div class="et-item et-green"><span class="et-label">Total Excess</span><span class="et-val">BDT '+money(excess)+'</span></div><div class="et-item et-net"><span class="et-label">Net Gap</span><span class="et-val">BDT '+money(gap)+'</span></div></div><div class="chart-box" style="height:200px"><canvas id="c5"></canvas></div></div></div>'+
-      '<div class="grid grid-2" style="margin-top:14px"><div class="card"><div class="card-title">Top Gap Points (priority order)</div>'+table(['Point','Zone','Shortfall','Ach %','Health'],topGap.map(t=>{const z=rows.find(r=>r.sr===t.name);return ['<b>'+esc(t.name)+'</b>',esc(z?z.zone:'—'),'BDT '+money(t.gap),(t.ach==null?'—':t.ach.toFixed(1)+'%'),hpill(t.ach)];}),[2,3])+'</div>'+
+      '<div class="card"><div class="card-title">Gross Shortfall vs Excess by Zone</div><div class="exec-totals"><div class="et-item et-red"><span class="et-label">Total Shortfall</span><span class="et-val">BDT '+money(_gross)+'</span></div><div class="et-item et-green"><span class="et-label">Total Excess</span><span class="et-val">BDT '+money(_excess)+'</span></div><div class="et-item et-net"><span class="et-label">Net Gap</span><span class="et-val">BDT '+money(_gap)+'</span></div></div><div class="chart-box" style="height:200px"><canvas id="c5"></canvas></div></div></div>'+
+      '<div class="grid grid-2" style="margin-top:14px"><div class="card"><div class="card-title">Top Gap Points (priority order)</div>'+table(['Point','Zone','Shortfall','Ach %','Health'],_topGap.map(t=>{const z=rows.find(x=>x.sr===t.name);return ['<b>'+esc(t.name)+'</b>',esc(z?z.zone:'—'),'BDT '+money(t.gap),(t.ach==null?'—':t.ach.toFixed(1)+'%'),hpill(t.ach)];}),[2,3])+'</div>'+
       '<div class="card"><div class="card-title">CI Research Priorities</div>'+
       '<div class="intel-card"><h4>Divisional Market Assessment</h4><div class="sig">Bottom zones — demand, coverage, competition</div></div>'+
       '<div class="intel-card" style="border-left-color:#d97706"><h4>Sales Force Productivity Study</h4><div class="sig">Visits vs orders conversion</div></div>'+
       '<div class="intel-card" style="border-left-color:#dc2626"><h4>Competitor Assessment</h4><div class="sig">Price & availability</div></div></div></div>'+
-      '<div class="decision-box"><h4>Decision Point</h4><p>National achievement is <strong>'+natAch.toFixed(1)+'%</strong> with a BDT '+money(gap)+' gap concentrated in <strong>'+crit+' critical zones</strong>. Decide: (1) recover the BDT '+money(gap*0.4)+' recoverable opportunity in those zones, and (2) approve the CI research priorities below to close the strike-rate / competitor data gaps.</p></div>');
+      '<div class="decision-box"><h4>Decision Point</h4><p>National achievement is <strong>'+_natAch.toFixed(1)+'%</strong> with a BDT '+money(_gap)+' gap concentrated in <strong>'+_crit+' critical zones</strong>. Decide: (1) recover the BDT '+money(_gap*0.4)+' recoverable opportunity in those zones, and (2) approve the CI research priorities below to close the strike-rate / competitor data gaps.</p></div>');
   }
-  function national(){return sec('sec2','National Performance','Monthly target vs actual (BDT)','<div class="card"><div class="chart-box"><canvas id="c2"></canvas></div></div><div class="card" style="margin-top:14px">'+table(['Month','Target','Actual','Ach %','Gap'],labels.map((l,i)=>[l,'BDT '+money(series[i].t),'BDT '+money(series[i].a),series[i].t>0?(series[i].a/series[i].t*100).toFixed(1)+'%':'—','BDT '+money(series[i].t-series[i].a)]),[1,2,3,4])+'</div>');}
+function national(){return sec('sec2','National Performance','Monthly target vs actual (BDT)','<div class="card"><div class="chart-box"><canvas id="c2"></canvas></div></div><div class="card" style="margin-top:14px">'+table(['Month','Target','Actual','Ach %','Gap'],labels.map((l,i)=>[l,'BDT '+money(series[i].t),'BDT '+money(series[i].a),series[i].t>0?(series[i].a/series[i].t*100).toFixed(1)+'%':'—','BDT '+money(series[i].t-series[i].a)]),[1,2,3,4])+'</div>');}
   function zoneInt(){return sec('sec3','Zone Intelligence','Zone health: target, actual, achievement, gap','<div class="card">'+table(['Zone','Target','Actual','Ach %','Gap','Health'],zones.map(z=>['<b>'+esc(z.name)+'</b>','BDT '+money(z.t),'BDT '+money(z.a),'<b style="color:'+achc(z.ach)+'">'+(z.ach==null?'—':z.ach.toFixed(1)+'%')+'</b>','BDT '+money(z.gap),hpill(z.ach)]),[1,2,3,4])+'</div>');}
   function divisionInt(){return sec('sec4','Division Intelligence','Division performance','<div class="card">'+table(['Division','Target','Actual','Ach %','Gap'],divs.map(d=>['<b>'+esc(d.name)+'</b>','BDT '+money(d.t),'BDT '+money(d.a),'<b style="color:'+achc(d.ach)+'">'+(d.ach==null?'—':d.ach.toFixed(1)+'%')+'</b>','BDT '+money(d.gap)]),[1,2,3,4])+'</div>');}
   function terrGap(){const top=terrs.slice(0,10),bottom=terrs.slice(-20).reverse();return sec('sec5','Point Gap Intelligence','Top 10 vs bottom 20 points (research candidates)','<div class="grid grid-2"><div class="card"><div class="card-title">Top 10 Points</div>'+table(['Point','Ach %','Gap'],top.map(t=>['<b>'+esc(t.name)+'</b>','<b style="color:'+achc(t.ach)+'">'+(t.ach==null?'—':t.ach.toFixed(1)+'%')+'</b>','BDT '+money(t.gap)]),[1,2])+'</div><div class="card"><div class="card-title">Bottom 20 Points — investigate</div>'+table(['Point','Ach %','Gap'],bottom.map(t=>['<b>'+esc(t.name)+'</b>','<b style="color:'+achc(t.ach)+'">'+(t.ach==null?'—':t.ach.toFixed(1)+'%')+'</b>','BDT '+money(t.gap)]),[1,2])+'</div></div>');}
@@ -1019,13 +1056,21 @@ function employeeGap(){
     if(topGap.length){ const emp=topGap[0].name; empChrono2(emp); const input=document.getElementById('emp_search'); if(input) input.value=emp; }
   }
   function initPage(id){
-    if(id==='sec1'){ mk('c1',{type:'bar',data:{labels,datasets:[{label:'Target',data:labels.map((_,i)=>series[i].t),backgroundColor:'#aebbd6',borderRadius:3,datalabels:{color:'#475569',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}},{label:'Sales',data:labels.map((_,i)=>series[i].a),backgroundColor:'#2e5b9f',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}}]}}); const zShort=zones.slice().sort((a,b)=>(b.gap||0)-(a.gap||0)).slice(0,12); mk('c5',{type:'bar',data:{labels:zShort.map(z=>z.name),datasets:[{label:'Shortfall',data:zShort.map(z=>z.gap>0?z.gap:0),backgroundColor:'#dc2626',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:9,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}},{label:'Excess',data:zShort.map(z=>z.gap<0?-z.gap:0),backgroundColor:'#16a34a',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:9,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}}]},options:{plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:11}}},datalabels:{display:false}},scales:{x:{ticks:{font:{size:8},maxRotation:60,minRotation:45}}}}}); }    if(id==='sec6') initManpower();
+    if(id==='sec1'){ const ex=window._exec||{labels:labels,series:series,zones:zones}; mk('c1',{type:'bar',data:{labels:ex.labels,datasets:[{label:'Target',data:ex.labels.map((_,i)=>ex.series[i].t),backgroundColor:'#aebbd6',borderRadius:3,datalabels:{color:'#475569',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}},{label:'Sales',data:ex.labels.map((_,i)=>ex.series[i].a),backgroundColor:'#2e5b9f',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}}]}}); const zShort=ex.zones.slice().sort((a,b)=>(b.gap||0)-(a.gap||0)).slice(0,12); mk('c5',{type:'bar',data:{labels:zShort.map(z=>z.name),datasets:[{label:'Shortfall',data:zShort.map(z=>z.gap>0?z.gap:0),backgroundColor:'#dc2626',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:9,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}},{label:'Excess',data:zShort.map(z=>z.gap<0?-z.gap:0),backgroundColor:'#16a34a',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:9,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}}]},options:{plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:11}}},datalabels:{display:false}},scales:{x:{ticks:{font:{size:8},maxRotation:60,minRotation:45}}}}}); }    if(id==='sec6') initManpower();
     if(id==='sec7') initEmployee();
     if(id==='sec2') mk('c2',{type:'bar',data:{labels,datasets:[{label:'Target',data:labels.map((_,i)=>series[i].t),backgroundColor:'#A9B4C0',borderRadius:3,datalabels:{color:'#5B6B7E',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}},{label:'Actual',data:labels.map((_,i)=>series[i].a),backgroundColor:'#EE1D24',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:10.5,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}}]}});
     if(id==='sec15'){ mk('c3',{type:'line',data:{labels:M.slice(0,9),datasets:[{label:'Active Outlets',data:M.slice(0,9).map((_,i)=>mc[i]||0),borderColor:'#EE1D24',backgroundColor:'#EE1D24',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#EE1D24'}]},options:{plugins:{legend:{display:false},datalabels:{color:'#0F1E2E',font:{size:10.5,weight:'bold'},anchor:'end',align:'top',offset:6,formatter:v=>v==null?'':Number(v).toLocaleString('en-IN')}}}}); mk('c4',{type:'bar',data:{labels:M.slice(0,mdist.length),datasets:[{label:'Distributors',data:mdist.map(v=>v||0),backgroundColor:'#A9B4C0',borderRadius:3,yAxisID:'y',datalabels:{color:'#5B6B7E',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:v=>v==null?'':String(v)}},{type:'line',label:'MoM Change %',data:dchg.map(v=>v==null?null:Math.round(v*10)/10),borderColor:'#EE1D24',backgroundColor:'#EE1D24',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#EE1D24',yAxisID:'y1',datalabels:{color:'#0F1E2E',font:{size:10,weight:'bold'},anchor:'end',align:'top',offset:5,formatter:v=>v==null?'':(v>=0?'+':'')+v.toFixed(1)+'%'}}]},options:{plugins:{legend:{display:false},datalabels:{display:false}},scales:{y:{position:'left',title:{display:true,text:'Distributors',font:{size:10}}},y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'MoM Change %',font:{size:10}}}}}}); }
     if(id==='sec14') initMap();
     if(id==='sec21') initSoProd();
   }
+  window.applySlicer=function(){
+    window._filters.year=document.getElementById('sl_year')?document.getElementById('sl_year').value:'2026';
+    window._filters.month=document.getElementById('sl_month')?document.getElementById('sl_month').value:'';
+    window._filters.division=document.getElementById('sl_division')?document.getElementById('sl_division').value:'';
+    window._filters.zone=document.getElementById('sl_zone')?document.getElementById('sl_zone').value:'';
+    window._filters.point=document.getElementById('sl_point')?document.getElementById('sl_point').value:'';
+    renderPage('sec1');
+  };
   function renderPage(id){
     document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active', x.getAttribute('data-sec')===id));
     const b=BUILD[id]; if(!b) return;
