@@ -758,7 +758,7 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
     const top=terrs.slice(0,20);
     const secHtml='<div class="summary-box"><h3>Manpower Intelligence</h3><p><strong>'+so+'</strong> sales officers across <strong>'+zones.length+'</strong> zones ('+zoneRows.reduce((a,z)=>a+z.off,0)+' active SR mappings). <strong>'+zoneRows.filter(z=>z.below).length+'</strong> zones below 90% achievement signal manpower/coverage pressure.</p></div>'+
       '<div class="grid grid-2"><div class="card"><div class="card-title">Achievement Band Distribution (points)</div><div class="chart-box md" style="height:240px"><canvas id="c10"></canvas></div></div>'+
-      '<div class="card"><div class="card-title">Zone Achievement %</div><div class="chart-box md" style="height:240px"><canvas id="c11"></canvas></div></div></div>'+
+      '<div class="card"><div class="card-title">Top 10 Zone Achievement %</div><div class="chart-box md" style="height:240px"><canvas id="c11"></canvas></div></div></div>'+
       '<div class="grid grid-2" style="margin-top:14px">'+
       '<div class="card"><div class="card-title">Zone Manpower Summary</div>'+table(['Zone','Officers','Target','Sales','Ach %','Below 90%'],zoneRows.map(z=>['<b>'+esc(z.name)+'</b>',String(z.off),'BDT '+money(z.t),'BDT '+money(z.a),'<b style="color:'+achc(z.ach)+'">'+(z.ach==null?'—':z.ach.toFixed(1)+'%')+'</b>',z.below?'<span class="pill pill-warn">Yes</span>':'<span class="pill pill-pos">No</span>']),[1,2,3,4,5])+'</div>'+
       '<div class="card"><div class="card-title">Top Points / SRs by Sales</div>'+table(['Point','Zone','Target','Actual','Ach %'],top.map(t=>{const z=rows.find(r=>r.sr===t.name);return ['<b>'+esc(t.name)+'</b>',esc(z?z.zone:'—'),'BDT '+money(t.t),'BDT '+money(t.a),'<b style="color:'+achc(t.ach)+'">'+(t.ach==null?'—':t.ach.toFixed(1)+'%')+'</b>'];}),[2,3,4])+'</div></div>'+
@@ -964,7 +964,7 @@ function employeeGap(){const srs=terrs.filter(t=>t.ach!=null&&t.ach<70).sort((a,
   }
   function initManpower(){
     const zo={}; rows.forEach(r=>{ (zo[r.zone]=zo[r.zone]||new Set()).add(r.sr); });
-    const zoneRows=zones.map(z=>({name:z.name,ach:z.ach})).sort((a,b)=>(b.ach||0)-(a.ach||0));
+    const zoneRows=zones.map(z=>({name:z.name,ach:z.ach})).sort((a,b)=>(b.ach||0)-(a.ach||0)).slice(0,10);
     const bands=[['≥100%','#16a34a',0],['90–100%','#0e9f6e',0],['80–90%','#d97706',0],['<80%','#dc2626',0]];
     terrs.forEach(t=>{ if(t.ach==null) return; if(t.ach>=100) bands[0][2]++; else if(t.ach>=90) bands[1][2]++; else if(t.ach>=80) bands[2][2]++; else bands[3][2]++; });
     mk('c10',{type:'doughnut',data:{labels:bands.map(b=>b[0]),datasets:[{data:bands.map(b=>b[2]),backgroundColor:bands.map(b=>b[1]),borderWidth:3,borderColor:'#fff'}]},options:{cutout:'55%',plugins:{legend:{position:'right',labels:{boxWidth:14,font:{size:11},padding:10,generateLabels:function(chart){const d=chart.data.datasets[0].data;const tot=d.reduce((a,b)=>a+b,0);return chart.data.labels.map((l,i)=>({text:l+' · '+d[i]+' ('+(tot?Math.round(d[i]/tot*100):0)+'%)',fillStyle:chart.data.datasets[0].backgroundColor[i],strokeStyle:'#fff',lineWidth:0,index:i}));}},datalabels:{color:'#fff',font:{weight:'800',size:11},anchor:'center',align:'center',formatter:function(v){const d=this.chart.data.datasets[0].data;const tot=d.reduce((a,b)=>a+b,0);return (tot?Math.round(v/tot*100):0)+'%';}}}}}});
