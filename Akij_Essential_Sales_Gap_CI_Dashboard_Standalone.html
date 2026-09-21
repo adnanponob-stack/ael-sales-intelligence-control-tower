@@ -782,14 +782,38 @@ window.BD_GEO = {"type":"FeatureCollection","features":[{"type":"Feature","prope
   function initMap(){
     const leg=document.getElementById('mapLegend'), box=document.getElementById('mapSvg');
     if(!leg || !box) return;
+    const zc=AEL_DATA.zoneCoord||{};
     const dmap={}; divs.forEach(d=>dmap[d.name]=d);
-    const achOf=name=>{ const d=dmap[name]; return d?d.ach:null; };
-    const paths=BD_DIVISIONS.map(d=>{ const a=achOf(d.ael); const c=health(a).c; return '<path class="reg" d="'+d.d+'" fill="'+c+'" opacity="0.9"><title>'+esc(d.id)+' — '+esc(d.ael)+' · '+(a==null?'—':a.toFixed(1)+'%')+'</title></path>'; }).join('');
-    const labels=BD_DIVISIONS.map(d=>'<text class="lbl" x="'+d.cx+'" y="'+d.cy+'">'+esc(d.id)+'</text>').join('');
-    leg.innerHTML='<span><span class="sw" style="background:#16a34a"></span>≥100%</span><span><span class="sw" style="background:#0e9f6e"></span>90–100%</span><span><span class="sw" style="background:#d97706"></span>80–90%</span><span><span class="sw" style="background:#dc2626"></span>&lt;80%</span> <span style="color:var(--muted)">division achievement</span>';
-    box.innerHTML='<svg viewBox="0 0 320 449" preserveAspectRatio="xMidYMid meet" style="width:100%;height:calc(100vh - 200px);max-height:520px;display:block"><g transform="translate(6,2)">'+paths+labels+'</g></svg>';
-    renderColorDist('division');
+    const zm={}; zones.forEach(z=>zm[z.name]=z);
+    const pm={}; points.forEach(p=>pm[p.name]=p);
+    const pZone={}; rows.forEach(r=>{ if(!pZone[r.point]) pZone[r.point]=r.zone; });
+    const proj=(lat,lng)=>{ const x=-5346.981+60.7336*lng+0.5237*lat; const y=1739.747+2.0331*lng-72.1276*lat; return [x,y]; };
+    const hash=s=>{ let h=0; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return h; };
+    let paths='', marks='', labels='', legend='';
+    const lvl=window._mapLevel||'division';
+    if(lvl==='division'){
+      paths=BD_DIVISIONS.map(d=>{ const a=(dmap[d.ael]||{}).ach; const c=health(a).c; return '<path class="reg" d="'+d.d+'" fill="'+c+'" opacity="0.9"><title>'+esc(d.id)+' — '+esc(d.ael)+' · '+(a==null?'—':a.toFixed(1)+'%')+'</title></path>'; }).join('');
+      labels=BD_DIVISIONS.map(d=>'<text class="lbl" x="'+d.cx+'" y="'+d.cy+'">'+esc(d.id)+'</text>').join('');
+    } else {
+      paths=BD_DIVISIONS.map(d=>'<path class="reg" d="'+d.d+'" fill="#e8e2d5" opacity="0.55" stroke="#d8cfbd" stroke-width="0.5"><title>'+esc(d.id)+'</title></path>').join('');
+      if(lvl==='zone'){
+        zones.forEach(z=>{ const c=zc[z.name]; if(!c) return; const xy=proj(c[0],c[1]); const col=health(z.ach).c; marks+='<circle cx="'+xy[0].toFixed(1)+'" cy="'+xy[1].toFixed(1)+'" r="5" fill="'+col+'" stroke="#fff" stroke-width="1"><title>'+esc(z.name)+' · '+(z.ach==null?'—':z.ach.toFixed(1)+'%')+'</title></circle>'; });
+        labels=zones.map(z=>{ const c=zc[z.name]; if(!c) return ''; const xy=proj(c[0],c[1]); return '<text x="'+xy[0].toFixed(1)+'" y="'+(xy[1]-7).toFixed(1)+'" font-size="7px" font-weight="700" fill="#2a1f1b" text-anchor="middle" pointer-events="none">'+esc(z.name.replace(' Zone',''))+'</text>'; }).join('');
+      } else {
+        points.forEach(p=>{ const zn=pZone[p.name]; const c=zc[zn]; if(!c) return; const xy=proj(c[0],c[1]); const jx=((hash(p.name)%13)-6)*1.6; const jy=((hash(p.name+'x')%13)-6)*1.6; const col=health(p.ach).c; marks+='<circle cx="'+(xy[0]+jx).toFixed(1)+'" cy="'+(xy[1]+jy).toFixed(1)+'" r="2.2" fill="'+col+'" fill-opacity="0.85"><title>'+esc(p.name)+' — '+esc(zn)+' · '+(p.ach==null?'—':p.ach.toFixed(1)+'%')+'</title></circle>'; });
+      }
+    }
+    legend='<span><span class="sw" style="background:#16a34a"></span>≥100%</span><span><span class="sw" style="background:#0e9f6e"></span>90–100%</span><span><span class="sw" style="background:#d97706"></span>80–90%</span><span><span class="sw" style="background:#dc2626"></span>&lt;80%</span> <span style="color:var(--muted)">'+(lvl==='division'?'division':lvl==='zone'?'zone':'point')+' achievement</span>';
+    leg.innerHTML=legend;
+    box.innerHTML='<svg viewBox="0 0 320 449" preserveAspectRatio="xMidYMid meet" style="width:100%;height:calc(100vh - 200px);max-height:520px;display:block"><g transform="translate(6,2)">'+paths+marks+labels+'</g></svg>';
+    renderColorDist(lvl);
   }
+  window.setMapLvl=function(btn){
+    document.querySelectorAll('.hlbtn[data-lvl]').forEach(b=>b.classList.remove('hlon'));
+    btn.classList.add('hlon');
+    window._mapLevel=btn.getAttribute('data-lvl');
+    initMap();
+  };
   function renderColorDist(level){
     const box=document.getElementById('colorDist'); if(!box) return;
     let items;
@@ -813,11 +837,6 @@ window.BD_GEO = {"type":"FeatureCollection","features":[{"type":"Feature","prope
     });
     box.innerHTML=html;
   }
-  window.setMapLvl=function(btn){
-    document.querySelectorAll('.hlbtn[data-lvl]').forEach(b=>b.classList.remove('hlon'));
-    btn.classList.add('hlon');
-    renderColorDist(btn.getAttribute('data-lvl'));
-  };
   function initPage(id){
     if(id==='sec1'){ mk('c1',{type:'bar',data:{labels,datasets:[{label:'Target',data:labels.map((_,i)=>series[i].t),backgroundColor:'#aebbd6',borderRadius:3,datalabels:{color:'#475569',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}},{label:'Sales',data:labels.map((_,i)=>series[i].a),backgroundColor:'#2e5b9f',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}}]}}); const zShort=zones.slice().sort((a,b)=>(b.gap||0)-(a.gap||0)).slice(0,12); mk('c5',{type:'bar',data:{labels:zShort.map(z=>z.name),datasets:[{label:'Shortfall',data:zShort.map(z=>z.gap>0?z.gap:0),backgroundColor:'#dc2626',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:9,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}},{label:'Excess',data:zShort.map(z=>z.gap<0?-z.gap:0),backgroundColor:'#16a34a',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:9,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}}]},options:{plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:11}}},datalabels:{display:false}},scales:{x:{ticks:{font:{size:8},maxRotation:60,minRotation:45}}}}}); }
     if(id==='sec2') mk('c2',{type:'bar',data:{labels,datasets:[{label:'Target',data:labels.map((_,i)=>series[i].t),backgroundColor:'#A9B4C0',borderRadius:3,datalabels:{color:'#5B6B7E',font:{size:10,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}},{label:'Actual',data:labels.map((_,i)=>series[i].a),backgroundColor:'#EE1D24',borderRadius:3,datalabels:{color:'#0F1E2E',font:{size:10.5,weight:'bold'},anchor:'end',align:'end',offset:2,formatter:dlFmt}}]}});
