@@ -581,7 +581,8 @@ html { scroll-behavior:smooth; }
 .cgroup { margin-bottom:12px; }
 .cgroup .cg-head { color:#fff; font-weight:700; font-size:11px; padding:5px 10px; border-radius:8px; display:flex; justify-content:space-between; margin-bottom:6px; }
 .cgroup .cg-body { display:flex; flex-wrap:wrap; gap:5px; }
-.cg-item { font-size:11px; background:#fff; border:1px solid var(--border); border-left-width:4px; border-radius:8px; padding:3px 8px; cursor:pointer; transition:.15s; }
+.cg-item { font-size:11px; background:#fff; border:1px solid var(--border); border-left-width:4px; border-radius:8px; padding:3px 8px; cursor:pointer; transition:.15s; display:flex; justify-content:space-between; gap:8px; align-items:center; }
+.cg-item em { font-style:normal; font-weight:800; color:#7b1e1e; font-variant-numeric:tabular-nums; }
 .cg-item:hover { transform:translateY(-1px); box-shadow:0 2px 6px rgba(0,0,0,.1); }
 .cg-item b { color:#2a1f1b; }
 .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:11.5px; color:var(--muted); margin-bottom:12px; }
@@ -1044,7 +1045,7 @@ function dq(){const total=rows.length;const dupes=total-new Set(rows.map(r=>r.sr
       const group=items.filter(i=>b.test(i.ach)).sort((x,y)=>(y.ach??-1)-(x.ach??-1));
       if(!group.length) return;
       html+='<div class="cgroup"><div class="cg-head" style="background:'+b.color+'"><span>'+b.label+'</span><span>'+group.length+'</span></div><div class="cg-body">';
-      group.forEach(g=>{ html+='<span class="cg-item" style="border-left-color:'+b.color+'" title="'+esc(g.name)+' · '+(g.ach==null?'—':g.ach.toFixed(1)+'%')+'"><b>'+esc(g.name)+'</b></span>'; });
+      group.forEach(g=>{ html+='<span class="cg-item" style="border-left-color:'+b.color+'" title="'+esc(g.name)+' · '+(g.ach==null?'—':g.ach.toFixed(1)+'%')+'"><b>'+esc(g.name)+'</b><em>'+(g.ach==null?'—':g.ach.toFixed(1)+'%')+'</em></span>'; });
       html+='</div></div>';
     });
     box.innerHTML=html;
