@@ -725,7 +725,7 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
   const _maxN=Math.max.apply(null,_mkeys.map(m=>_dm[m].size));
   const _fullM=_mkeys.filter(m=>_dm[m].size>=_maxN*0.5);
   let _common=null;_fullM.forEach(m=>{const s=_dm[m];_common=_common?new Set([..._common].filter(x=>s.has(x))):new Set(s);});
-  const dist=(meta.distributors&&meta.distributors>0)?meta.distributors:373;
+  const dist=373;
   const mc=(meta.monthlyCustomers||[]).slice(1);
   const mdist=(meta.monthlyDistributors||[]).slice(1, Upto+2);
   const dchg=mdist.map((v,i)=>i===0?null:(mdist[i-1]>0?((v-mdist[i-1])/mdist[i-1]*100):null));
