@@ -682,12 +682,36 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function agg(rs,k){const m=new Map();rs.forEach(r=>{if(!m.has(r[k]))m.set(r[k],{name:r[k],t:0,a:0});const e=m.get(r[k]);e.t+=r.target;e.a+=r.actual;});return Array.from(m.values()).map(e=>({name:e.name,t:e.t,a:e.a,ach:ach(e.t,e.a),gap:e.t-e.a}));}
   function monthly(rs){const o=Array.from({length:12},()=>({t:0,a:0}));rs.forEach(r=>{o[r.mi].t+=r.target;o[r.mi].a+=r.actual;});return o;}
-  const natT=ytd.reduce((s,r)=>s+r.target,0), natA=ytd.reduce((s,r)=>s+r.actual,0);
-  const natAch=ach(natT,natA), gap=natT-natA;
-  const zones=agg(ytd,'zone').sort((a,b)=>b.a-a.a);
-  const divs=agg(ytd,'dsm').sort((a,b)=>b.a-a.a);
-  const terrs=agg(ytd,'sr').sort((a,b)=>b.a-a.a);
-  const points=agg(ytd,'point').sort((a,b)=>b.a-a.a);
+  function filteredRows(){
+    const F=window._filters||{}; let r=rows;
+    if(F.month!==''&&F.month!=null&&F.month!==undefined) r=r.filter(x=>x.mi===Number(F.month));
+    if(F.division) r=r.filter(x=>x.dsm===F.division);
+    if(F.zone) r=r.filter(x=>x.zone===F.zone);
+    if(F.point) r=r.filter(x=>x.point===F.point);
+    return r;
+  }
+  function slicerBar(){
+    const F=window._filters||{};
+    const opt=function(id,vals,cur,label){ let o='<option value="">All</option>'; vals.forEach(function(v){ o+='<option value="'+esc(v)+'"'+(v===cur?' selected':'')+'>'+esc(v)+'</option>'; }); return '<div class="sl"><label>'+label+'</label><select id="'+id+'" onchange="applySlicer()">'+o+'</select></div>'; };
+    const yearOpt='<div class="sl"><label>Year</label><select id="sl_year" onchange="applySlicer()"><option value="2026"'+(F.year==='2026'?' selected':'')+'>2026</option></select></div>';
+    const monthOpt='<div class="sl"><label>Month</label><select id="sl_month" onchange="applySlicer()"><option value="">All</option>'+M.slice(0,Upto+1).map(function(m,i){return '<option value="'+i+'"'+((F.month===''+i||F.month===i)?' selected':'')+'>'+m+'</option>';}).join('')+'</select></div>';
+    return '<div class="slicer-bar">'+yearOpt+monthOpt+opt('sl_division',_allDivs.map(function(d){return d.name;}),F.division,'Division')+opt('sl_zone',_allZones.map(function(z){return z.name;}),F.zone,'Zone')+opt('sl_point',_allPoints.map(function(p){return p.name;}),F.point,'Point')+'</div>';
+  }
+  const _allDivs=agg(ytd,'dsm').sort((a,b)=>a.name.localeCompare(b.name));
+  const _allZones=agg(ytd,'zone').sort((a,b)=>a.name.localeCompare(b.name));
+  const _allPoints=agg(ytd,'point').sort((a,b)=>a.name.localeCompare(b.name));
+  let natT,natA,natAch,gap,zones,divs,terrs,points,series,labels,crit,under;
+  function computeAggs(rs){
+    natT=rs.reduce((s,r)=>s+r.target,0); natA=rs.reduce((s,r)=>s+r.actual,0);
+    natAch=ach(natT,natA); gap=natT-natA;
+    zones=agg(rs,'zone').sort((a,b)=>b.a-a.a);
+    divs=agg(rs,'dsm').sort((a,b)=>b.a-a.a);
+    terrs=agg(rs,'sr').sort((a,b)=>b.a-a.a);
+    points=agg(rs,'point').sort((a,b)=>b.a-a.a);
+    series=monthly(rs); labels=M.slice(0,Upto+1);
+    crit=zones.filter(z=>z.ach!=null&&z.ach<70).length; under=zones.filter(z=>z.ach!=null&&z.ach<90).length;
+  }
+  computeAggs(ytd);
   const products=(meta.products||[]).slice().sort((a,b)=>b.amt-a.amt);
   const totalSku=products.reduce((s,p)=>s+p.amt,0);
   const so=470, out=meta.activeCustomers||0;
@@ -703,8 +727,7 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
   const dchg=mdist.map((v,i)=>i===0?null:(mdist[i-1]>0?((v-mdist[i-1])/mdist[i-1]*100):null));
   const dLatest=mdist[mdist.length-1]||0;
   const dChgLatest=dchg[dchg.length-1];
-  const series=monthly(ytd), labels=M.slice(0,Upto+1);
-  const crit=zones.filter(z=>z.ach!=null&&z.ach<70).length, under=zones.filter(z=>z.ach!=null&&z.ach<90).length;
+
   let cum=0,focus=0;products.forEach(p=>{cum+=p.amt;if(cum<=totalSku*.8)focus++;});
   const health=a=>a==null?{c:'#9ca3af',l:'No data'}:a>=100?{c:'#16a34a',l:'Healthy'}:a>=90?{c:'#0e9f6e',l:'Healthy'}:a>=80?{c:'#d97706',l:'Watch'}:{c:'#dc2626',l:'Critical'};
   const hpill=a=>{const h=health(a);return '<span class="pill '+(h.l==='Healthy'?'pill-pos':h.l==='Watch'?'pill-warn':h.l==='Critical'?'pill-neg':'pill-gray')+'">'+h.l+'</span>';};
@@ -731,7 +754,7 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
     sec20:'Data quality checks, definitions and limitations behind every figure in this dashboard.',
     sec21:'Per-officer daily outlet visit target, visit status, line-per-call and outlet-wise sales per day from live RTM delivery activity.'
   };
-  function sec(id,title,desc,html,sum){return '<section class="report-section" id="'+id+'"><h2>'+title+'</h2><div class="desc">'+desc+'</div>'+(sum||SUMMARIES[id]?'<div class="summary-box"><p>'+(sum||SUMMARIES[id])+'</p></div>':'')+html+'</section>';}
+  function sec(id,title,desc,html,sum){return '<section class="report-section" id="'+id+'"><h2>'+title+'</h2><div class="desc">'+desc+'</div>'+slicerBar()+(sum||SUMMARIES[id]?'<div class="summary-box"><p>'+(sum||SUMMARIES[id])+'</p></div>':'')+html+'</section>';}
   function kpi(l,v,s,c){return '<div class="kpi"><div class="kpi-accent"></div><div class="kpi-label">'+l+'</div><div class="kpi-value" style="color:'+(c||'')+'">'+v+'</div>'+(s?'<div class="kpi-sub">'+s+'</div>':'')+'</div>';}
   function table(headers,rows,right){return '<div class="table-wrap"><table class="tbl"><thead><tr>'+headers.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr class="row">'+r.map((c,i)=>'<td class="'+(right&&right.includes(i)?'num mono':'')+'">'+c+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';}
 
@@ -765,19 +788,8 @@ window.DAILY_PROD = {"date":"2026-09-20","sr":{"present":441,"late":12,"leave":0
     const g3=(()=>{let r3=0,p3=0;for(let i=Upto;i>Upto-3&&i>=0;i--)r3+=_series[i].a;for(let i=Upto-3;i>Upto-6&&i>=0;i--)p3+=_series[i].a;return p3>0?((r3-p3)/p3)*100:null;})();
     window._exec={labels:M.slice(0,Upto+1),series:_series,zones:_zones,natT:_natT,natA:_natA,natAch:_natAch,gap:_gap,gross:_gross,excess:_excess,crit:_crit,under:_under};
     const monthLabel=F.month!==''&&F.month!=null&&F.month!==undefined?M[Number(F.month)]:'All months';
-    const slicerOpts=function(id,vals,cur,label){
-      let o='<option value="">All</option>';
-      vals.forEach(v=>{ o+='<option value="'+esc(v)+'"'+(v===cur?' selected':'')+'>'+esc(v)+'</option>'; });
-      return '<div class="sl"><label>'+label+'</label><select id="'+id+'" onchange="applySlicer()">'+o+'</select></div>';
-    };
-    const divNames=divs.map(d=>d.name).sort();
-    const zoneNames=zones.map(z=>z.name).sort();
-    const pointNames=points.map(p=>p.name).sort();
-    const yearOpt='<div class="sl"><label>Year</label><select id="sl_year" onchange="applySlicer()"><option value="2026"'+(F.year==='2026'?' selected':'')+'>2026</option></select></div>';
-    const monthOpt='<div class="sl"><label>Month</label><select id="sl_month" onchange="applySlicer()"><option value="">All</option>'+M.slice(0,Upto+1).map((m,i)=>'<option value="'+i+'"'+(F.month===''+i||F.month===i?' selected':'')+'>'+m+'</option>').join('')+'</select></div>';
-    const slicer='<div class="slicer-bar">'+yearOpt+monthOpt+slicerOpts('sl_division',divNames,F.division,'Division')+slicerOpts('sl_zone',zoneNames,F.zone,'Zone')+slicerOpts('sl_point',pointNames,F.point,'Point')+'</div>';
     return sec('sec1','Executive Intelligence','One-page management position',
-      slicer+
+      
       '<div class="summary-box"><h3>Executive Intelligence Summary ('+monthLabel+')</h3><p>YTD achievement is <strong>'+_natAch.toFixed(1)+'%</strong> with a net gap of <strong>BDT '+money(_gap)+'</strong> (gross shortfall BDT '+money(_gross)+', excess BDT '+money(_excess)+').</p><p style="margin-top:6px"><span class="tag">'+_crit+' critical zones</span><span class="tag">'+_under+' below 90%</span><span class="tag">'+focus+' SKUs = 80% value</span></p></div>'+
       '<div class="kpi-grid" style="margin-bottom:14px">'+kpiC('YTD Target','BDT '+money(_natT),'c-blue',monthLabel)+kpiC('YTD Sales','BDT '+money(_natA),'c-green')+kpiC('Achievement %',_natAch.toFixed(1)+'%','c-teal',_natAch>=90?'On track':'Below target',_natAch>=90?'pos':'neg')+kpiC('Net Gap','BDT '+money(_gap),'c-red','shortfall','neg')+kpiC('Gross Shortfall','BDT '+money(_gross),'c-red')+kpiC('3M Growth',g3==null?'—':(g3>=0?'+':'')+g3.toFixed(1)+'%','c-teal')+kpiC('Critical Zones',String(_crit),'c-amber',_under+' below 90%')+kpiC('Distributor MoM',dChgLatest==null?'—':(dChgLatest>=0?'+':'')+dChgLatest.toFixed(1)+'%','c-amber',dist+' active')+kpiC('Active Outlets',out.toLocaleString('en-IN'),'c-green',so+' officers')+'</div>'+
       '<div class="card" style="margin-bottom:14px"><div class="card-title">Top Performers (by sales — 2026 YTD)</div><div class="board">'+
@@ -1093,7 +1105,9 @@ function dq(){const total=rows.length;const dupes=total-new Set(rows.map(r=>r.sr
     window._filters.division=document.getElementById('sl_division')?document.getElementById('sl_division').value:'';
     window._filters.zone=document.getElementById('sl_zone')?document.getElementById('sl_zone').value:'';
     window._filters.point=document.getElementById('sl_point')?document.getElementById('sl_point').value:'';
-    renderPage('sec1');
+    computeAggs(filteredRows());
+    const act=document.querySelector('.nav-item.active');
+    renderPage(act?act.getAttribute('data-sec'):'sec1');
   };
   function renderPage(id){
     document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active', x.getAttribute('data-sec')===id));
