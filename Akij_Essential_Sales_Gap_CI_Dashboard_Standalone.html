@@ -74,7 +74,7 @@ select, input { font-family: inherit; }
 .sidebar {
   width: 264px;
   min-width: 264px;
-  background: linear-gradient(180deg, var(--brand), var(--brand-dark));
+  background: linear-gradient(180deg, #4d1212 0%, #7b1e1e 55%, #963232 100%);
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -83,48 +83,52 @@ select, input { font-family: inherit; }
   height: 100vh;
   z-index: 50;
   transition: margin-left .2s ease;
+  box-shadow: 2px 0 12px rgba(0,0,0,.18);
 }
 .brand {
   display: flex; align-items: center; gap: 12px;
   padding: 20px 18px 16px;
-  border-bottom: 1px solid rgba(255,255,255,.22);
+  border-bottom: 1px solid rgba(255,255,255,.12);
 }
 .brand-mark {
   width: 40px; height: 40px; border-radius: 50%;
   background: #fff;
   border: 1px solid rgba(255,255,255,.5);
   display: grid; place-items: center;
-  font-weight: 800; font-size: 14px; color: var(--brand); letter-spacing: .5px;
+  font-weight: 800; font-size: 14px; color: #7b1e1e; letter-spacing: .5px;
   box-shadow: 0 2px 8px rgba(0,0,0,.18);
 }
-.brand-logo { height: 44px; width: auto; max-width: 132px; object-fit: contain; display: block; }
-.brand-title { font-weight: 700; font-size: 14px; color: #fff; }
-.brand-sub { font-size: 10.5px; color: rgba(255,255,255,.8); letter-spacing: .4px; }
+.brand-logo {
+  display: block; max-width: 160px; height: auto;
+  background: #fff; border-radius: 10px; padding: 7px 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.22);
+}
+.brand-title { font-weight: 700; font-size: 15px; color: #fff; letter-spacing: .3px; }
+.brand-sub { font-size: 10.5px; color: #d9b3b3; letter-spacing: .4px; }
 
-.nav { flex: 1; overflow-y: auto; padding: 10px 12px; }
-.nav-group {
-  font-size: 10px; text-transform: uppercase; letter-spacing: 1.1px;
-  color: rgba(255,255,255,.7); margin: 14px 8px 6px;
+.nav { flex: 1; overflow-y: auto; padding: 10px 0; }
+.nav-sec {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: 1.2px;
+  color: #f0d5c8; padding: 14px 18px 5px; font-weight: 800;
 }
 .nav-item {
   display: flex; align-items: center; gap: 10px;
-  padding: 9px 10px; border-radius: 8px;
-  color: #fff; font-size: 13px; font-weight: 500;
+  padding: 9px 14px; margin: 2px 10px; border-radius: 8px;
+  color: #fff; font-size: 13px; font-weight: 700;
   cursor: pointer; transition: background .15s, color .15s;
-  margin-bottom: 2px;
+  border-left: 3px solid transparent;
 }
-.nav-item:hover { background: rgba(255,255,255,.16); color: #fff; }
-.nav-item.active {
-  background: rgba(255,255,255,.24);
-  color: #fff;
-  border-left: 3px solid #fff;
-  padding-left: 8px;
-  font-weight: 600;
+.nav-item:hover { background: rgba(255,255,255,.08); color: #fff; }
+.nav-item.active { background: rgba(255,255,255,.16); color: #fff; font-weight: 800; }
+.nav-item .bar { width: 4px; height: 18px; border-radius: 2px; flex-shrink: 0; }
+.nav-item .num {
+  width: 23px; height: 23px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; background: rgba(255,255,255,.28); color: #fff; flex-shrink: 0;
 }
-.nav-num { font-size: 10px; color: rgba(255,255,255,.65); width: 20px; font-variant-numeric: tabular-nums; }
-.nav-item.active .nav-num { color: #fff; }
+.nav-item.active .num { background: #fff; color: #7b1e1e; font-weight: 800; }
 
-.sidebar-foot { padding: 12px; border-top: 1px solid rgba(255,255,255,.22); }
+.sidebar-foot { padding: 14px 18px; border-top: 1px solid rgba(255,255,255,.12); font-size: 10px; color: #d0a5a5; line-height: 1.5; }
 .cycle-mini { background: rgba(255,255,255,.14); border-radius: 8px; padding: 10px 12px; }
 .cycle-title { font-size: 11px; font-weight: 600; color: #fff; margin-bottom: 8px; }
 .cycle-steps { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -132,7 +136,7 @@ select, input { font-family: inherit; }
   font-size: 9px; padding: 3px 7px; border-radius: 20px;
   background: rgba(255,255,255,.18); color: #fff; letter-spacing: .3px;
 }
-.cycle-step.on { background: #fff; color: var(--brand); }
+.cycle-step.on { background: #fff; color: #7b1e1e; }
 .foot-credits { font-size: 10px; color: rgba(255,255,255,.75); margin-top: 10px; text-align: center; }
 
 /* ===== MAIN ===== */
@@ -495,32 +499,35 @@ html { scroll-behavior:smooth; }
       </div>
     </div>
     <nav class="nav" id="nav">
-      <div class="nav-group">Overview</div>
-      <a class="nav-item active" data-sec="sec1"><span class="nav-num">01</span> Executive Summary</a>
-      <a class="nav-item" data-sec="sec2"><span class="nav-num">02</span> National Performance</a>
-      <a class="nav-item" data-sec="sec3"><span class="nav-num">03</span> Zone Intelligence</a>
-      <a class="nav-item" data-sec="sec4"><span class="nav-num">04</span> Region Intelligence</a>
-      <a class="nav-item" data-sec="sec5"><span class="nav-num">05</span> Territory Gap</a>
-      <a class="nav-item" data-sec="sec6"><span class="nav-num">06</span> Manpower Intelligence</a>
-      <a class="nav-item" data-sec="sec7"><span class="nav-num">07</span> Employee Gap Analysis</a>
-      <a class="nav-item" data-sec="sec8"><span class="nav-num">08</span> Gap Diagnostics</a>
-      <div class="nav-group">Intelligence</div>
-      <a class="nav-item" data-sec="sec9"><span class="nav-num">09</span> MD Business Question Board</a>
-      <a class="nav-item" data-sec="sec10"><span class="nav-num">10</span> CI Research Roadmap</a>
-      <a class="nav-item" data-sec="sec11"><span class="nav-num">11</span> Gap Investigation Register</a>
-      <a class="nav-item" data-sec="sec12"><span class="nav-num">12</span> Business Impact</a>
-      <a class="nav-item" data-sec="sec13"><span class="nav-num">13</span> Business Health Heat Map</a>
-      <a class="nav-item" data-sec="sec14"><span class="nav-num">14</span> Bangladesh Summary</a>
-      <a class="nav-item" data-sec="sec15"><span class="nav-num">15</span> Customer Intelligence</a>
-      <div class="nav-group">Strategy</div>
-      <a class="nav-item" data-sec="sec16"><span class="nav-num">16</span> Resources &amp; Capabilities</a>
-      <a class="nav-item" data-sec="sec17"><span class="nav-num">17</span> Competitive Advantage</a>
-      <a class="nav-item" data-sec="sec18"><span class="nav-num">18</span> VRIO Analysis</a>
-      <a class="nav-item" data-sec="sec19"><span class="nav-num">19</span> Competitive Intelligence — Next Steps</a>
-      <div class="nav-group">Governance</div>
-      <a class="nav-item" data-sec="sec20"><span class="nav-num">20</span> Data Quality &amp; Methodology</a>
+      <div class="nav-sec">Overview</div>
+      <a class="nav-item active" data-sec="sec1"><span class="bar" style="background:#16a34a"></span><span class="num">01</span><span>Executive Intelligence</span></a>
+      <a class="nav-item" data-sec="sec2"><span class="bar" style="background:#2e5b9f"></span><span class="num">02</span><span>National Performance</span></a>
+      <a class="nav-item" data-sec="sec14"><span class="bar" style="background:#0e9f6e"></span><span class="num">03</span><span>Bangladesh Map</span></a>
+      <a class="nav-item" data-sec="sec3"><span class="bar" style="background:#0e9f6e"></span><span class="num">04</span><span>Zone Intelligence</span></a>
+      <a class="nav-item" data-sec="sec4"><span class="bar" style="background:#0e9f6e"></span><span class="num">05</span><span>Region Intelligence</span></a>
+      <a class="nav-item" data-sec="sec5"><span class="bar" style="background:#16a34a"></span><span class="num">06</span><span>Territory Gap</span></a>
+      <div class="nav-sec">People</div>
+      <a class="nav-item" data-sec="sec6"><span class="bar" style="background:#d97706"></span><span class="num">07</span><span>Manpower Intelligence</span></a>
+      <a class="nav-item" data-sec="sec7"><span class="bar" style="background:#d97706"></span><span class="num">08</span><span>Employee Gap Analysis</span></a>
+      <div class="nav-sec">Customer</div>
+      <a class="nav-item" data-sec="sec15"><span class="bar" style="background:#0e7490"></span><span class="num">09</span><span>Customer Intelligence</span></a>
+      <div class="nav-sec">Diagnostics</div>
+      <a class="nav-item" data-sec="sec8"><span class="bar" style="background:#dc2626"></span><span class="num">10</span><span>Gap Diagnostics</span></a>
+      <a class="nav-item" data-sec="sec9"><span class="bar" style="background:#7c3aed"></span><span class="num">11</span><span>MD Business Questions</span></a>
+      <div class="nav-sec">Research</div>
+      <a class="nav-item" data-sec="sec10"><span class="bar" style="background:#16a34a"></span><span class="num">12</span><span>CI Research Roadmap</span></a>
+      <a class="nav-item" data-sec="sec11"><span class="bar" style="background:#dc2626"></span><span class="num">13</span><span>Gap Investigations</span></a>
+      <div class="nav-sec">Strategy</div>
+      <a class="nav-item" data-sec="sec12"><span class="bar" style="background:#0e7490"></span><span class="num">14</span><span>Business Impact</span></a>
+      <a class="nav-item" data-sec="sec13"><span class="bar" style="background:#0e9f6e"></span><span class="num">15</span><span>Business Health</span></a>
+      <a class="nav-item" data-sec="sec16"><span class="bar" style="background:#16a34a"></span><span class="num">16</span><span>Resources &amp; Capabilities</span></a>
+      <a class="nav-item" data-sec="sec17"><span class="bar" style="background:#2e5b9f"></span><span class="num">17</span><span>Competitive Advantage</span></a>
+      <a class="nav-item" data-sec="sec18"><span class="bar" style="background:#7c3aed"></span><span class="num">18</span><span>VRIO Analysis</span></a>
+      <a class="nav-item" data-sec="sec19"><span class="bar" style="background:#0e7490"></span><span class="num">19</span><span>CI Next Steps</span></a>
+      <div class="nav-sec">Governance</div>
+      <a class="nav-item" data-sec="sec20"><span class="bar" style="background:#6b7280"></span><span class="num">20</span><span>Data Quality &amp; Method</span></a>
     </nav>
-    <div class="sidebar-foot"><div class="foot-credits">Akij Essential Ltd (Consumer) &middot; CI</div></div>
+    <div class="sidebar-foot">Analytical model: zone-month detail basis.<br>Facts ≠ signals ≠ hypotheses ≠ causes.<br>No fabricated data &middot; No blame.</div>
   </aside>
 
   <div class="main">
