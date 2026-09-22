@@ -45,6 +45,13 @@ TARGET_MODEL = "memo_x_avg"
 # When None, it is auto-derived as (total amount / total deliveries).
 AVG_MEMO_VALUE_OVERRIDE = None
 
+# ---- zone -> division remap (Rangpur split from Rajshahi) ----
+DIVISION_REMAP = {
+    "Dinajpur Zone": "Rangpur Division",
+    "Panchagarh Zone": "Rangpur Division",
+    "Rangpur Zone": "Rangpur Division",
+}
+
 # ---- pagination ----
 # The RTM MCP caps results at 200 rows; paginate by hashing territory name into buckets.
 BUCKETS = 50
@@ -460,6 +467,7 @@ def main():
         zone = (a.get("Zone") or "").strip() or (a.get("Division") or "").strip() or "National"
         point = (a.get("Point") or "").strip() or terr
         division = (a.get("Division") or "").strip() or zone
+        division = DIVISION_REMAP.get(zone, division)
         memotarget = carried_target(terr, mn)
         sr = emp_by_id.get(str(a.get("TerrId") or "").strip(), terr)
 
